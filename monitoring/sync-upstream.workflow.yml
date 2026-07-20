@@ -1,0 +1,55 @@
+name: Sync fork main from upstream
+
+# ---------------------------------------------------------------------------
+# Purpose
+#   Keep this fork's `main` branch a fresh mirror of the official upstream
+#   repository xai-org/x-algorithm, so the monitoring Routine can detect and
+#   analyze upstream changes even though the Claude session cannot access the
+#   upstream repo directly.
+#
+# IMPORTANT setup requirements (see monitoring/README.md):
+#   1. GitHub Actions must be ENABLED on the fork
+#      (Settings -> Actions -> General -> Allow all actions).
+#   2. Scheduled workflows only run from the repository's DEFAULT branch, and
+#      a fork's `main` must stay a PURE MIRROR (no local commits) for the
+#      `gh repo sync` fast-forward to succeed.
+#      => Set the automation branch (the one holding this file + monitoring/)
+#         as the repo's default branch, and leave `main` untouched by hand.
+#   3. `workflow_dispatch` lets you (or the Routine) trigger a sync on demand.
+# ---------------------------------------------------------------------------
+
+on:
+  schedule:
+    # Daily at ~05:37 UTC. Off-:00 minute on purpose to avoid the global
+    # thundering herd of cron jobs that all fire at the top of the hour.
+    - cron: '37 5 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync main from xai-org/x-algorithm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Syncing ${GITHUB_REPOSITORY}:main from xai-org/x-algorithm:main ..."
+          # gh repo sync uses the GitHub "merge-upstream" API. It fast-forwards
+          # the fork's branch to the upstream HEAD. This only works while `main`
+          # has NOT diverged from upstream (i.e. it stays a pure mirror).
+          if gh repo sync "${GITHUB_REPOSITORY}" --source xai-org/x-algorithm --branch main; then
+            echo "Sync complete."
+          else
+            echo "::warning::gh repo sync failed. The most common cause is that" \
+                 "main has diverged from upstream (local commits were added to" \
+                 "main). Keep automation off main; see monitoring/README.md."
+            exit 1
+          fi
