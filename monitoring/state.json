@@ -1,6 +1,7 @@
 {
   "repo": "szq0017/x-algorithm",
   "upstream": "xai-org/x-algorithm",
+  "automation_branch": "monitoring",
   "watched_branch": "main",
   "last_analyzed_sha": "0bfc2795d308f90032544322747caacd535f75ae",
   "last_analyzed_at": "2026-07-20",

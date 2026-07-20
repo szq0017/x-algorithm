@@ -47,8 +47,8 @@ reports/YYYY-MM-DD.md（コミット）＋ プッシュ通知
 
 Claude 側で作れない「リポジトリ設定／ワークフロー配置」は次の手順で有効化してください。
 
-### 0. 上流同期ワークフローを配置する
-Claude の GitHub App は `workflows` 権限を持たないため、ワークフローはテンプレートとして同梱しています。オーナー権限で `.github/workflows/sync-upstream.yml` に配置してください。いずれかの方法で：
+### 0. 上流同期ワークフローを配置する — ✅ 対応済み（`.github/workflows/sync-upstream.yml` 配置済み・デフォルトブランチ `monitoring`）
+Claude の GitHub App は `workflows` 権限を持たないため、ワークフローはテンプレート（`monitoring/sync-upstream.workflow.yml`）として同梱しています。リポジトリオーナーが `.github/workflows/sync-upstream.yml` に配置します。**本リポジトリでは配置済みです。** 再設置・別リポジトリで使う場合は、いずれかの方法で：
 
 - **GitHub UI:** リポジトリ画面の `Add file → Create new file` でパスを `.github/workflows/sync-upstream.yml` とし、`monitoring/sync-upstream.workflow.yml` の内容を貼り付けてコミット。
 - **ローカル（自分の認証情報）:**
@@ -67,7 +67,7 @@ Claude の GitHub App は `workflows` 権限を持たないため、ワークフ
 `gh repo sync` は上流HEADへの **fast-forward** で同期します。`main` に独自コミットを載せると分岐して同期が失敗します。したがって：
 
 - **自動化ファイル（この `monitoring/` と `.github/workflows/`、`reports/`）は `main` に置かない。**
-- それらを持つ**自動化ブランチ**（例：この作業ブランチ `claude/x-algorithm-monitoring-ceqc16`、または `monitoring` にリネーム）を**デフォルトブランチ**に設定する。
+- それらを持つ**自動化ブランチ `monitoring`** を**デフォルトブランチ**に設定する（✅ 設定済み。`HEAD branch: monitoring`）。
   - スケジュール実行の GitHub Actions は**デフォルトブランチからのみ**起動するため、この設定が必要です。
 - `main` は触らず、①のワークフローに上流ミラーとして同期させ続ける。
 
