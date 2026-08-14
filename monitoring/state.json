@@ -3,9 +3,17 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "0bfc2795d308f90032544322747caacd535f75ae",
-  "last_analyzed_at": "2026-07-20",
+  "last_analyzed_sha": "a389166f6cf5da70a286b568c87695d4dcdce3a1",
+  "last_analyzed_at": "2026-08-14",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
-  "history": []
+  "history": [
+    {
+      "date": "2026-08-14",
+      "from_sha": "0bfc2795d308f90032544322747caacd535f75ae",
+      "to_sha": "a389166f6cf5da70a286b568c87695d4dcdce3a1",
+      "report": "reports/2026-08-14.md",
+      "headline": "大型アップデート(2054ファイル変更): ranking_scorerに新シグナル/代替スコアリング方式追加、grox spam閾値の実質有効化、新規ボット検知bdsm公開、For You新規フィルタ4件稼働、広告ブランドセーフティ厳格化"
+    }
+  ]
 }
