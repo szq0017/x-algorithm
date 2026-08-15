@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "a389166f6cf5da70a286b568c87695d4dcdce3a1",
-  "last_analyzed_at": "2026-08-14",
+  "last_analyzed_sha": "c65aa179db7bdd61e2c2821eac87f208a105c053",
+  "last_analyzed_at": "2026-08-15",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -14,6 +14,13 @@
       "to_sha": "a389166f6cf5da70a286b568c87695d4dcdce3a1",
       "report": "reports/2026-08-14.md",
       "headline": "大型アップデート(2054ファイル変更): ranking_scorerに新シグナル/代替スコアリング方式追加、grox spam閾値の実質有効化、新規ボット検知bdsm公開、For You新規フィルタ4件稼働、広告ブランドセーフティ厳格化"
+    },
+    {
+      "date": "2026-08-15",
+      "from_sha": "a389166f6cf5da70a286b568c87695d4dcdce3a1",
+      "to_sha": "c65aa179db7bdd61e2c2821eac87f208a105c053",
+      "report": "reports/2026-08-15.md",
+      "headline": "小規模だが実影響大(21ファイル): ブラジル2026選挙フィルタ新設(665アカウントを非フォロワーのFor Youから除外)、grox返信閾値15k→30k、コールドスタートにThompson Sampling(既定オフ)、古い投稿(14日超)のエンゲージメント数値ゼロ化(既定オフ)、フォロー関係特徴量をモデル入力に追加。ランキング重みの数値変更はなし(誤解訂正コメントのみ)"
     }
   ]
 }
