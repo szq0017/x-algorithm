@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "b089ce64891f9c50fab73aa00dbe65acb82f198f",
-  "last_analyzed_at": "2026-08-18",
+  "last_analyzed_sha": "11a71f87d6a7fc4c1e8159dad8f3c5ff90a0f7ed",
+  "last_analyzed_at": "2026-08-19",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -28,6 +28,13 @@
       "to_sha": "b089ce64891f9c50fab73aa00dbe65acb82f198f",
       "report": "reports/2026-08-18.md",
       "headline": "ランキング重みの数値変更はゼロ。代わりに上流レイヤーが変化(34ファイル): 話題(セマンティックID)単位の重複コンテキストをモデル入力に追加、著者フォロワー数と著者NSFWフラグをPhoenixモデル入力化、初いいね時の検索インデックス投入の競合バグ修正(小規模アカウントに有利)、grox返信閾値30k→40k、成人向け判定にGrok 4.5クロスバリデーション(緩和方向のみ)、広告ブランドセーフティv2(既定オフ・挙動同値)、フォロー中タブ100→110件"
+    },
+    {
+      "date": "2026-08-19",
+      "from_sha": "b089ce64891f9c50fab73aa00dbe65acb82f198f",
+      "to_sha": "11a71f87d6a7fc4c1e8159dad8f3c5ff90a0f7ed",
+      "report": "reports/2026-08-19.md",
+      "headline": "小規模差分(14ファイル)だが1件は体感レベル: 「フォロー中」タブ専用VFハイドレータ新設で祖先/引用元投稿の安全性レベルがTimelineHomeRecommendations→TimelineHomeへ緩和(OON専用Drop26ルールが不適用、フラグなし無条件)。grox返信閾値40k→60k、スパム検知をv3ストリームへ統合、sid_*特徴量をVMRanker(既定オン)へ供給、広告BS v2はv1委譲方式に変更し緩和方向(既定オフ)、Phoenix rank-all投稿作成イベントv3移行、Gizmoduck RPC 80msタイムアウト"
     }
   ]
 }
