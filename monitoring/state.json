@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "aad7179773944e17eb8798bbbf0231d6cd6c1ffc",
-  "last_analyzed_at": "2026-08-20",
+  "last_analyzed_sha": "d0cef2f943084ee0d4310378031c9c2c37d67f12",
+  "last_analyzed_at": "2026-08-21",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -42,6 +42,13 @@
       "to_sha": "aad7179773944e17eb8798bbbf0231d6cd6c1ffc",
       "report": "reports/2026-08-20.md",
       "headline": "大規模一括ドロップ(79ファイル): 「フォロー中」タブに引用/祖先本文まで舐めるミュートキーワードフィルタ新設、grox成人向けにGrok 4.6内部10%投入、Phoenix側で検索専用モデルxrecsys_search・DPA商品埋め込み(10M)・外部リンク開封P10-P90ヘッド・14日超投稿の学習時カウントゼロ化(既定オン)・著者フォロー関係の候補別2ビット(既定オン)・エンゲージメントMLP入力(既定オン)・Muonオプティマイザ追加。ランキング重み数値変更なし。"
+    },
+    {
+      "date": "2026-08-21",
+      "from_sha": "aad7179773944e17eb8798bbbf0231d6cd6c1ffc",
+      "to_sha": "d0cef2f943084ee0d4310378031c9c2c37d67f12",
+      "report": "reports/2026-08-21.md",
+      "headline": "小規模差分(14ファイル)、ランキング重み変更ゼロ。For You投稿見出しに『AIトレンド名＋x.com/i/trending/<ID>リンク』を出す新ハイドレータ追加(既定オフ・1レスポンス最大2件・単独オリジナル投稿のみ・トピックラベル優先)、著者多様性/MPNのslate contextをPhoenix提供値に切替えるスイッチ新設(既定オフ)、grox安全性分類のGrok 4.6内部投入比率10%→30%、著者プロフィール画像をデータモデルに追加(未使用)、LLMストリーム早期停止フック追加(未使用)、phoenix emb_tableは挙動不変のリファクタ"
     }
   ]
 }
