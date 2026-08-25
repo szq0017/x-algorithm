@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "28e414f535e4b5a50ca12ee87674e7649e50c7ad",
-  "last_analyzed_at": "2026-08-23",
+  "last_analyzed_sha": "d011592a1c8c4bfb23781ff15577a68dc08bdde1",
+  "last_analyzed_at": "2026-08-25",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -56,6 +56,13 @@
       "to_sha": "28e414f535e4b5a50ca12ee87674e7649e50c7ad",
       "report": "reports/2026-08-23.md",
       "headline": "中規模差分(35ファイル)、home-mixerの変更ゼロ＝ランキング重み・フィルタの数値変更なし。稼働中の実影響3件: grox返信閾値60k→80k(5日連続引き上げ、6万〜8万帯が返信ランキング対象外→スパム検知対象へ)、安全性ポリシー分類がGrok 4.5経路をコードごと削除し4.6内部へ100%移行(従来30%)、検索クエリ再入力ClientTweetSearchQueryReformulatedをネガティブフィードバック・ヘッドに追加。要確認1件: 二塔リトリーバルのEVERGREEN候補プールが最長5年→4〜14日動画に差替(配信側rank-allは5年窓維持)。既定オフ: 広告ビュースルー/アプリ内変換ヘッド20種追加+ads_slimラベル群、遅延フィードバックのヘッド分離(split_head_training_by_source)、SlateContextを推論protoに追加(8/21のUseServedSlateContextの受け皿)"
+    },
+    {
+      "date": "2026-08-25",
+      "from_sha": "28e414f535e4b5a50ca12ee87674e7649e50c7ad",
+      "to_sha": "d011592a1c8c4bfb23781ff15577a68dc08bdde1",
+      "report": "reports/2026-08-25.md",
+      "headline": "小〜中規模差分(19ファイル/1418追加)、ランキング重み変更ゼロ(home-mixer/scorers/は無変更)。稼働中の実影響4件: (1)grox返信閾値80k→100kで6日連続の引き上げが完了、プロンプト側固定値100,000と一致したため到達点の可能性(8万〜10万帯が返信ランキング対象外→スパム検知対象へ)。(2)返信ランキングスコアの1.0点以下(低品質)のみをatla/pdxa地域キャッシュへ二重書き込みする経路を新設=悪い返信を確実に沈める方向の投資(読出側は要確認)。(3)安全性ポリシーのクロスバリデータを独立クラス化し暴力的メディア・違法/規制行為の2カテゴリへ新規適用、児童安全の照合先を4.6-internal→4.5-x-algoへ差し替えカテゴリ専用プロンプト化。全経路が緩和方向のみでフェイルオープン(照合失敗・例外でも違反取消、暴力メディアのみGraphicMediaへ格下げ)=際どい報道/規制品投稿の誤検知減、通報の不発は増え得る。一次判定は4.6-internalのまま。(4)広告ブランドセーフティにHighRiskティア新設、NSFW高精度/高再現・GORE高精度・PDNA・EGREGIOUS_NSFWをMedium→Highへ移動しSOFT_NSFWを新規追加。has_avoidがMedium|Highを等価扱いのため既存ラベルの挙動は同値で、実挙動変化はSOFT_NSFW1点(軽度性的表現の投稿の前後に広告が挿さらなくなる)。v2は既定オフだがddg実験バケットのロギング配線が入りA/B準備完了。準備段階: VF新旧突き合わせハーネス812行新設(VF_DUAL_CALL_HARNESS_ENABLED、APP_ENV=prodでは起動時panicのステージング専用・非同期で配信を阻害せず)=可視性判定のRust実装移行が最終検証段階へ。小: Grokの投稿レンダリングに音声スペース題名を追加(安全性/スパム判定の入力に混入)、安全性ラベルproto露出5種追加(GROK_SFA_V2等・PTOS_REVIEWED)、Phoenixチェックポイント読込のノード排他ロックとバッチメモリ解放(学習側のみ)、twemcacheのTLS暗号プロバイダring→aws-lc-rs。"
     }
   ]
 }
