@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "0d3cdd806c405f04db7030f720b48687aa304061",
-  "last_analyzed_at": "2026-08-26",
+  "last_analyzed_sha": "45b48ba6baa40e212f6dcbaf8fe9fdc8d9da722e",
+  "last_analyzed_at": "2026-08-27",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -70,6 +70,13 @@
       "to_sha": "0d3cdd806c405f04db7030f720b48687aa304061",
       "report": "reports/2026-08-26.md",
       "headline": "8/14以来はじめてランキング重みが実数値で変更(47ファイル): VQV(動画完視聴)0.05→0.0で撤廃、Dwell(滞在)0.0→0.05で新設、VideoOpen0.05→0.07。retrievalに1fav_video索引と年齢指定ウィンドウ(2-4日/4-14日/4-30日)を新設し古い動画の再浮上経路を用意。ブラジル選挙フィルタ670→2,333アカウント。フォロー中タブにblocked-byフィルタ新設。コールドスタート判定をview_count→view_count_on_home。grox返信閾値100k→120k(前回の打ち止め予測は外れ)＋60秒デデュープ撤廃。広告BS v2が既定ON。MPNスコアリング実験は完全撤去(巻き戻し)。Phoenix履歴集約SHORT_DWELL→LONG_DWELL"
+    },
+    {
+      "date": "2026-08-27",
+      "from_sha": "0d3cdd806c405f04db7030f720b48687aa304061",
+      "to_sha": "45b48ba6baa40e212f6dcbaf8fe9fdc8d9da722e",
+      "report": "reports/2026-08-27.md",
+      "headline": "小〜中規模差分(36ファイル/873追加525削除)、ランキング重み・フィルタの数値変更はゼロ(param.rsは同期日時コメントのみ、scorers/無変更)。実影響は返信欄に集中: (1)返信ランキングスコアの書き込みが単調ラチェット化——新スコア>既存なら書き込みスキップでスコアは下がるか据え置きのみ、Kafka/地域キャッシュ含む全下流に波及。返信は投げた瞬間の初回採点が生涯の上限に。読み出し失敗時は従来どおり上書き(フェイルオープン)。(2)返信採点LLMの入力にスレッド全投稿のフォロワー数と元投稿主のbioを追加(既定有効・両採点系)、あわせて『採点対象は最終投稿の著者』を明示するヘッダ新設で帰属の取り違えを是正。プロンプト非公開のためフォロワー数の効きの向きは要確認。grox返信閾値は120,000のまま据え置き(7日連続の引き上げが停止)。準備段階: proto に広告ピクセル発火ヘッド3種(ADS_PIXEL_FIRE/ADS_LONG_DWELL_AND_PIXEL_FIRE/P_LONG_DWELL_AND_PIXEL_FIRE)とConvAssetIds(表示済み広告アセット履歴)を宣言、配線なし。SlateContextにrecon_count_above/recon_gap_above追加(中継のみ、proto定義が見当たらず要確認)。VFはメディア用フォールバックキャッシュを完全撤去=TES障害時にNSFW年齢ゲート/閲覧注意/メディア地域制限が発火しないフェイルオープンへ回帰(著者側キャッシュは残存)。ダークトラフィック複製をcanary除外・WORKLOAD_NAME必須のフェイルクローズ化。Phoenixは学習の勾配有効性を本体×埋め込みで統合ゲート化、NaN検知を行単位化(ログのみ・推薦不変)、conversion_keep_mask→trained_candidate_maskへリネーム(意味不変)、二塔にuse_history_segment_ids(既定オフ)、チェックポイント並列復元、過負荷制御の推定値リセットAPI追加。"
     }
   ]
 }
