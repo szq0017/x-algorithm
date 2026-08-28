@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "45b48ba6baa40e212f6dcbaf8fe9fdc8d9da722e",
-  "last_analyzed_at": "2026-08-27",
+  "last_analyzed_sha": "24c60942c5c5fdad3a6addffb4c6e6d2f228f04f",
+  "last_analyzed_at": "2026-08-28",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -77,6 +77,13 @@
       "to_sha": "45b48ba6baa40e212f6dcbaf8fe9fdc8d9da722e",
       "report": "reports/2026-08-27.md",
       "headline": "小〜中規模差分(36ファイル/873追加525削除)、ランキング重み・フィルタの数値変更はゼロ(param.rsは同期日時コメントのみ、scorers/無変更)。実影響は返信欄に集中: (1)返信ランキングスコアの書き込みが単調ラチェット化——新スコア>既存なら書き込みスキップでスコアは下がるか据え置きのみ、Kafka/地域キャッシュ含む全下流に波及。返信は投げた瞬間の初回採点が生涯の上限に。読み出し失敗時は従来どおり上書き(フェイルオープン)。(2)返信採点LLMの入力にスレッド全投稿のフォロワー数と元投稿主のbioを追加(既定有効・両採点系)、あわせて『採点対象は最終投稿の著者』を明示するヘッダ新設で帰属の取り違えを是正。プロンプト非公開のためフォロワー数の効きの向きは要確認。grox返信閾値は120,000のまま据え置き(7日連続の引き上げが停止)。準備段階: proto に広告ピクセル発火ヘッド3種(ADS_PIXEL_FIRE/ADS_LONG_DWELL_AND_PIXEL_FIRE/P_LONG_DWELL_AND_PIXEL_FIRE)とConvAssetIds(表示済み広告アセット履歴)を宣言、配線なし。SlateContextにrecon_count_above/recon_gap_above追加(中継のみ、proto定義が見当たらず要確認)。VFはメディア用フォールバックキャッシュを完全撤去=TES障害時にNSFW年齢ゲート/閲覧注意/メディア地域制限が発火しないフェイルオープンへ回帰(著者側キャッシュは残存)。ダークトラフィック複製をcanary除外・WORKLOAD_NAME必須のフェイルクローズ化。Phoenixは学習の勾配有効性を本体×埋め込みで統合ゲート化、NaN検知を行単位化(ログのみ・推薦不変)、conversion_keep_mask→trained_candidate_maskへリネーム(意味不変)、二塔にuse_history_segment_ids(既定オフ)、チェックポイント並列復元、過負荷制御の推定値リセットAPI追加。"
+    },
+    {
+      "date": "2026-08-28",
+      "from_sha": "45b48ba6baa40e212f6dcbaf8fe9fdc8d9da722e",
+      "to_sha": "24c60942c5c5fdad3a6addffb4c6e6d2f228f04f",
+      "report": "reports/2026-08-28.md",
+      "headline": "中規模差分(41ファイル/2071追加265削除)、ランキング重み変更ゼロ(scorers/無変更、param.rsは同期日時のみ)。実影響4件: (1)grox返信スコア書き込みがフェイルオープン→フェイルクローズ化。既存スコア取得のtry/exceptを削除しStrato読み出し失敗で書き込みごと中止(Manhattan/Kafka両方とも書かれずスパムラベルも不発)。ラチェット条件が > から >= へ厳格化で同点も書き込みスキップ=初回採点でほぼ確定。書き込み順もKafka先行に変更。(2)grox PTOSでSpamCardManipulationが高PageRank/グレーバッジ免除の対象外へ移動=大アカウントのリンクカード操作にもSpamHighRecallが付く。(3)ブラジル選挙フィルタ2,328→2,315(除外解除14件・追加1件)。10件は『候補者が申告したハンドルは本人のものではないと判断』の新規コメント付き、@bispadamares→@DamaresAlvesはハンドル訂正。(4)Stratoコンテキストヘッダ(stratocontext/-bin, field 11)からis_pollingを読む新util追加、4エンドポイント全てでボディ値とOR=自動更新と能動閲覧の切り分け精度向上(served history RequestType/非ポーリング時刻更新に波及)。既定オフの大物: MultiRiskAdsBlender新設(332行)——BSR-High広告をMediumリスク投稿ペアの間に挿入可、safe_budget=0でも配置続行しspacing_cap上限まで広告本数増、High投稿は引き続き広告非隣接。既定はpartition_organic_low_riskのまま、対照テストが同時追加されA/B準備完了。VF L2キャッシュウォーマー新設(203行、VF_CACHE_WARM_SAMPLE_PCT既定0、本線非阻害)。小: 協調スパム分類器にフォロワー数投入(閾値120,000は2日連続据え置き)、SimClusters InterestedIn 2020に_TMP_RECOVERYフォールバック+28日ルックバック=トピック埋め込みが最大28日古くなり得る。準備段階: PLACE_HOLDER_84→CLIENT_TWEET_VIDEO_6SEC_VIEW(未配線)、SlateContext.reconCountAbove/reconGapAbove正式定義(8/27の要確認を解消)、concat_history_bridge_prob設定配線(既定オフ)、DENSE_WITH_PROFILE_LONG_DWELLがpython側protoにも追従。インフラ: Phoenix gRPC応答圧縮でトレーラ取りこぼしの実バグ修正、モデル重み転送のシャード順決定的シャッフル、チェックポイントのストリーミング復元。enforcement_user.yamlはルール変更ゼロ(空行2行のみ)。テストのみ: ミュートキーワードのCJK全トークン一致を明文化(「京都」は「東京都」にマッチしない)。"
     }
   ]
 }
