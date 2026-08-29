@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "24c60942c5c5fdad3a6addffb4c6e6d2f228f04f",
-  "last_analyzed_at": "2026-08-28",
+  "last_analyzed_sha": "bc8e5f0f07b31337bfdcaf690121498e00199b64",
+  "last_analyzed_at": "2026-08-29",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -84,6 +84,13 @@
       "to_sha": "24c60942c5c5fdad3a6addffb4c6e6d2f228f04f",
       "report": "reports/2026-08-28.md",
       "headline": "中規模差分(41ファイル/2071追加265削除)、ランキング重み変更ゼロ(scorers/無変更、param.rsは同期日時のみ)。実影響4件: (1)grox返信スコア書き込みがフェイルオープン→フェイルクローズ化。既存スコア取得のtry/exceptを削除しStrato読み出し失敗で書き込みごと中止(Manhattan/Kafka両方とも書かれずスパムラベルも不発)。ラチェット条件が > から >= へ厳格化で同点も書き込みスキップ=初回採点でほぼ確定。書き込み順もKafka先行に変更。(2)grox PTOSでSpamCardManipulationが高PageRank/グレーバッジ免除の対象外へ移動=大アカウントのリンクカード操作にもSpamHighRecallが付く。(3)ブラジル選挙フィルタ2,328→2,315(除外解除14件・追加1件)。10件は『候補者が申告したハンドルは本人のものではないと判断』の新規コメント付き、@bispadamares→@DamaresAlvesはハンドル訂正。(4)Stratoコンテキストヘッダ(stratocontext/-bin, field 11)からis_pollingを読む新util追加、4エンドポイント全てでボディ値とOR=自動更新と能動閲覧の切り分け精度向上(served history RequestType/非ポーリング時刻更新に波及)。既定オフの大物: MultiRiskAdsBlender新設(332行)——BSR-High広告をMediumリスク投稿ペアの間に挿入可、safe_budget=0でも配置続行しspacing_cap上限まで広告本数増、High投稿は引き続き広告非隣接。既定はpartition_organic_low_riskのまま、対照テストが同時追加されA/B準備完了。VF L2キャッシュウォーマー新設(203行、VF_CACHE_WARM_SAMPLE_PCT既定0、本線非阻害)。小: 協調スパム分類器にフォロワー数投入(閾値120,000は2日連続据え置き)、SimClusters InterestedIn 2020に_TMP_RECOVERYフォールバック+28日ルックバック=トピック埋め込みが最大28日古くなり得る。準備段階: PLACE_HOLDER_84→CLIENT_TWEET_VIDEO_6SEC_VIEW(未配線)、SlateContext.reconCountAbove/reconGapAbove正式定義(8/27の要確認を解消)、concat_history_bridge_prob設定配線(既定オフ)、DENSE_WITH_PROFILE_LONG_DWELLがpython側protoにも追従。インフラ: Phoenix gRPC応答圧縮でトレーラ取りこぼしの実バグ修正、モデル重み転送のシャード順決定的シャッフル、チェックポイントのストリーミング復元。enforcement_user.yamlはルール変更ゼロ(空行2行のみ)。テストのみ: ミュートキーワードのCJK全トークン一致を明文化(「京都」は「東京都」にマッチしない)。"
+    },
+    {
+      "date": "2026-08-29",
+      "from_sha": "24c60942c5c5fdad3a6addffb4c6e6d2f228f04f",
+      "to_sha": "bc8e5f0f07b31337bfdcaf690121498e00199b64",
+      "report": "reports/2026-08-29.md",
+      "headline": "小規模差分(24ファイル/1950追加1175削除)。8/14以降で初めて、稼働中の実挙動を変える変更がゼロの日。ランキング重み・フィルタ条件・スパム閾値・広告挿入いずれも数値変更なし(grox/ads/retrievalは差分に含まれず)。準備段階1件: RerankerHeadTag(rust_home_mixer_reranker_head_tag、既定0)を新設し、Phoenix推論リクエストのUserActionSequence(field 9)とScoreInfo(field 6)にタグを毎回付与=リランカー・ヘッドをユーザー/リクエスト単位で差し替えるA/B配線が開通。応答のタグは候補に書き戻され、既定オフのLogSlateContextが真のときだけリクエストキャッシュへ記録(オフポリシー学習の下ごしらえ)。ヘッドの実体とタグ値の意味はリポジトリ外で要確認、reward_rerank_slot_probはNone固定のまま。テスト基盤: VFにゴールデンコーパス1039行/91ケース新設(判定と決め手ルール名をピン留め、全wiredルールが最低1ケースの決め手であることを強制するテスト付き)、RuleContextアクセサ層214行とフィクスチャ116行を新設。全ルールの判定条件は不変で、DropStaleTweetsRuleの3行目削除はis_retweet()と重複のため等価、viewer_id().is_none()→viewer_is_logged_out()も等価。可視性判定のRust移行が退行検知の網を張り終えた段階(8/25の突き合わせハーネスに続く静的検証)。インフラ: Phoenix emb_tableの受信をパイプライン化(4MiB片・深さ2のsync_channelでmemcpy/adler32をspawn_blockingへ退避、JoinOnDropで早期return時もjoin保証)、proto_parserにFunc::Bytes追加でゼロコピー・スライス、copy_port_clientはjoin_transfers抽出のみ。推薦結果は不変。文書: READMEのブラジル選挙フィルタ更新日8/25→8/27に訂正(昨日の2,328→2,315への追記漏れ修正、アカウント数の増減は今日なし)。"
     }
   ]
 }
