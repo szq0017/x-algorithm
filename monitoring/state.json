@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "bc8e5f0f07b31337bfdcaf690121498e00199b64",
-  "last_analyzed_at": "2026-08-29",
+  "last_analyzed_sha": "6384ca7d2c8570fbc645c20c3291730739ac00ce",
+  "last_analyzed_at": "2026-09-01",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -91,6 +91,13 @@
       "to_sha": "bc8e5f0f07b31337bfdcaf690121498e00199b64",
       "report": "reports/2026-08-29.md",
       "headline": "小規模差分(24ファイル/1950追加1175削除)。8/14以降で初めて、稼働中の実挙動を変える変更がゼロの日。ランキング重み・フィルタ条件・スパム閾値・広告挿入いずれも数値変更なし(grox/ads/retrievalは差分に含まれず)。準備段階1件: RerankerHeadTag(rust_home_mixer_reranker_head_tag、既定0)を新設し、Phoenix推論リクエストのUserActionSequence(field 9)とScoreInfo(field 6)にタグを毎回付与=リランカー・ヘッドをユーザー/リクエスト単位で差し替えるA/B配線が開通。応答のタグは候補に書き戻され、既定オフのLogSlateContextが真のときだけリクエストキャッシュへ記録(オフポリシー学習の下ごしらえ)。ヘッドの実体とタグ値の意味はリポジトリ外で要確認、reward_rerank_slot_probはNone固定のまま。テスト基盤: VFにゴールデンコーパス1039行/91ケース新設(判定と決め手ルール名をピン留め、全wiredルールが最低1ケースの決め手であることを強制するテスト付き)、RuleContextアクセサ層214行とフィクスチャ116行を新設。全ルールの判定条件は不変で、DropStaleTweetsRuleの3行目削除はis_retweet()と重複のため等価、viewer_id().is_none()→viewer_is_logged_out()も等価。可視性判定のRust移行が退行検知の網を張り終えた段階(8/25の突き合わせハーネスに続く静的検証)。インフラ: Phoenix emb_tableの受信をパイプライン化(4MiB片・深さ2のsync_channelでmemcpy/adler32をspawn_blockingへ退避、JoinOnDropで早期return時もjoin保証)、proto_parserにFunc::Bytes追加でゼロコピー・スライス、copy_port_clientはjoin_transfers抽出のみ。推薦結果は不変。文書: READMEのブラジル選挙フィルタ更新日8/25→8/27に訂正(昨日の2,328→2,315への追記漏れ修正、アカウント数の増減は今日なし)。"
+    },
+    {
+      "date": "2026-09-01",
+      "from_sha": "bc8e5f0f07b31337bfdcaf690121498e00199b64",
+      "to_sha": "6384ca7d2c8570fbc645c20c3291730739ac00ce",
+      "report": "reports/2026-09-01.md",
+      "headline": "大きめ差分(70ファイル/+2,247-735、8/29〜8/31の3日分)。ランキング重み変更ゼロ(scorers/無変更)、広告挿入も無変更、grox返信閾値120,000据え置き。稼働中の実影響3件: (1)VFが閲覧者IDを正規化しviewer_id=0や最上位ビット立ちの不正値をログアウト扱いへ(filter_tweets.rs:114)。従来はID0番のログイン済みとして扱われセンシティブ判定・ブロック/ミュート・鍵アカのログアウト分岐が全て不発だった。ログアウト/埋め込み閲覧でNSFW・GOREが見えなくなる方向。正規化件数の専用カウンタ新設。(2)home-mixerのVF結果マージ順が反転しoon→in-networkのchain順に(vf_candidate_hydrator.rs:107-112)、重複IDで緩いTimelineHomeが勝つ側へ。8/19の緩和と同方向。(3)ブラジル選挙フィルタ2,320→2,393行(追加108/解除35、ユニーク2,317→2,390)。@CARLOSVIANAが本人ハンドルでないと判断され除外解除。過去最大級の1日増分。最大の新規機能(既定オフだが配線完結): grox特殊動画フローsafety_ptos_special_video——専用Kafkaトピックsafety-ptos-special-video・専用プラン・入口条件(動画あり+いいね64以上)・モーションリビール生成(全フレーム中央値を静止レイヤーとみなしframe-0.7*medianで覆いを差し引き、肌色率×動きエネルギーで並べ替え、原フレーム併置/単独/2x2グリッドの3枚をLLMへ)。プロンプトが『覆いで隠された中身』を名指しで説明。enable_motion_reveal既定Falseのため現時点は不発(config.py:113、本番値は要確認)。同フローのみクロスバリデーション失敗時にAdultContentSexualSoftを自動付与するフェイルクローズ(8/25の全経路フェイルオープンから初の逆転)。VFのNSFW年齢ゲート対象国が設定駆動化(rust_vf_nsfw_gating_countries、30秒ポーリング、Scala側とのドリフト検知カウンタ付き)——既定値は従来16か国と同一で今日の挙動は不変だが、以後は対象国変更がコード差分に現れなくなる。準備段階: proto にPageDecodeParams(poolN/steps/temperature)とPageDecodeResult、ScoreInfo.pageDecodeSlotProbを宣言=候補プールから温度付きサンプリングで1ページを逐次デコードする生成的スレート構成の受け皿、配線ゼロ。広告アクション列挙は8/23追加のADS_RAW_ENGAGEMENT_TYPE_*49種(204-252)を全削除し遅延コンバージョン10種(204-213)+ADS_MMP_CLICK(254)へ入替(bdsm/runtime/action_names.jsonは旧名のまま=要確認)。挙動不変: VFルールをviewer()/tweet()/author()/takedown()の述語アクセサへ全面リファクタ(判定条件は不変)、VFクライアントがsafety_labelsも返すがhome-mixerは破棄、ScoreInfoからprediction_scores除去(既定オフのLogSlateContext配下)、not_dwelledヘッドの分布計測と実験バケット別集計(既定オフ)を追加。インフラ: thunder/abuse-enforcementのKafkaをSCRAM→mTLS(後者はSCRAM経路をコードごと削除、消費者の起動条件がKAFKA_CONSUMER_ENABLED既定falseへ=要確認)、mm-serverの埋め込み取り込みをspawn_blockingへ退避、学習チェックポイントのKMS暗号化新設、GB300学習設定bs768→960/ep32→64、SimClusters 2020 InterestedIn読込を非公開ヘルパへ集約(28日ルックバック/_TMP_RECOVERY保持は要確認)。"
     }
   ]
 }
