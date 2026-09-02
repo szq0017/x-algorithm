@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "6384ca7d2c8570fbc645c20c3291730739ac00ce",
-  "last_analyzed_at": "2026-09-01",
+  "last_analyzed_sha": "7ba776848b12d8422eb0f291ee03ea5c17ab0188",
+  "last_analyzed_at": "2026-09-02",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -98,6 +98,13 @@
       "to_sha": "6384ca7d2c8570fbc645c20c3291730739ac00ce",
       "report": "reports/2026-09-01.md",
       "headline": "大きめ差分(70ファイル/+2,247-735、8/29〜8/31の3日分)。ランキング重み変更ゼロ(scorers/無変更)、広告挿入も無変更、grox返信閾値120,000据え置き。稼働中の実影響3件: (1)VFが閲覧者IDを正規化しviewer_id=0や最上位ビット立ちの不正値をログアウト扱いへ(filter_tweets.rs:114)。従来はID0番のログイン済みとして扱われセンシティブ判定・ブロック/ミュート・鍵アカのログアウト分岐が全て不発だった。ログアウト/埋め込み閲覧でNSFW・GOREが見えなくなる方向。正規化件数の専用カウンタ新設。(2)home-mixerのVF結果マージ順が反転しoon→in-networkのchain順に(vf_candidate_hydrator.rs:107-112)、重複IDで緩いTimelineHomeが勝つ側へ。8/19の緩和と同方向。(3)ブラジル選挙フィルタ2,320→2,393行(追加108/解除35、ユニーク2,317→2,390)。@CARLOSVIANAが本人ハンドルでないと判断され除外解除。過去最大級の1日増分。最大の新規機能(既定オフだが配線完結): grox特殊動画フローsafety_ptos_special_video——専用Kafkaトピックsafety-ptos-special-video・専用プラン・入口条件(動画あり+いいね64以上)・モーションリビール生成(全フレーム中央値を静止レイヤーとみなしframe-0.7*medianで覆いを差し引き、肌色率×動きエネルギーで並べ替え、原フレーム併置/単独/2x2グリッドの3枚をLLMへ)。プロンプトが『覆いで隠された中身』を名指しで説明。enable_motion_reveal既定Falseのため現時点は不発(config.py:113、本番値は要確認)。同フローのみクロスバリデーション失敗時にAdultContentSexualSoftを自動付与するフェイルクローズ(8/25の全経路フェイルオープンから初の逆転)。VFのNSFW年齢ゲート対象国が設定駆動化(rust_vf_nsfw_gating_countries、30秒ポーリング、Scala側とのドリフト検知カウンタ付き)——既定値は従来16か国と同一で今日の挙動は不変だが、以後は対象国変更がコード差分に現れなくなる。準備段階: proto にPageDecodeParams(poolN/steps/temperature)とPageDecodeResult、ScoreInfo.pageDecodeSlotProbを宣言=候補プールから温度付きサンプリングで1ページを逐次デコードする生成的スレート構成の受け皿、配線ゼロ。広告アクション列挙は8/23追加のADS_RAW_ENGAGEMENT_TYPE_*49種(204-252)を全削除し遅延コンバージョン10種(204-213)+ADS_MMP_CLICK(254)へ入替(bdsm/runtime/action_names.jsonは旧名のまま=要確認)。挙動不変: VFルールをviewer()/tweet()/author()/takedown()の述語アクセサへ全面リファクタ(判定条件は不変)、VFクライアントがsafety_labelsも返すがhome-mixerは破棄、ScoreInfoからprediction_scores除去(既定オフのLogSlateContext配下)、not_dwelledヘッドの分布計測と実験バケット別集計(既定オフ)を追加。インフラ: thunder/abuse-enforcementのKafkaをSCRAM→mTLS(後者はSCRAM経路をコードごと削除、消費者の起動条件がKAFKA_CONSUMER_ENABLED既定falseへ=要確認)、mm-serverの埋め込み取り込みをspawn_blockingへ退避、学習チェックポイントのKMS暗号化新設、GB300学習設定bs768→960/ep32→64、SimClusters 2020 InterestedIn読込を非公開ヘルパへ集約(28日ルックバック/_TMP_RECOVERY保持は要確認)。"
+    },
+    {
+      "date": "2026-09-02",
+      "from_sha": "6384ca7d2c8570fbc645c20c3291730739ac00ce",
+      "to_sha": "7ba776848b12d8422eb0f291ee03ea5c17ab0188",
+      "report": "reports/2026-09-02.md",
+      "headline": "小規模差分(34ファイル)だが1件が大: 広告ブレンダー既定値が partition_organic_low_risk → multi_risk に切替(8/28新設・既定オフだったものが本番既定へ)。未審査/2026-05-12以降未レビューの投稿は自動的にMediumRisk扱いのため、BSR-High広告が「普通の新しい投稿」の間にも挿入され得る＝safe_count/2という広告本数の上限が実質解除。VFルールは10ファイル→3ファイルの宣言的テーブル化だが順序固定テスト付きで挙動同値。Phoenix検索クエリ埋め込みの複製範囲バグ修正(パディングスロットへの混入を除去)。SID再構成モード(既定オフ)、DPA sid_codes(配線なし)、暗号化チェックポイント安全弁。ランキング重みは7日連続無変更、grox返信閾値120k据え置き"
     }
   ]
 }
