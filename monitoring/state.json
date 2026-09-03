@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "7ba776848b12d8422eb0f291ee03ea5c17ab0188",
-  "last_analyzed_at": "2026-09-02",
+  "last_analyzed_sha": "85ac72a1bba41f21615e3f0bca56da75970a6633",
+  "last_analyzed_at": "2026-09-03",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -105,6 +105,13 @@
       "to_sha": "7ba776848b12d8422eb0f291ee03ea5c17ab0188",
       "report": "reports/2026-09-02.md",
       "headline": "小規模差分(34ファイル)だが1件が大: 広告ブレンダー既定値が partition_organic_low_risk → multi_risk に切替(8/28新設・既定オフだったものが本番既定へ)。未審査/2026-05-12以降未レビューの投稿は自動的にMediumRisk扱いのため、BSR-High広告が「普通の新しい投稿」の間にも挿入され得る＝safe_count/2という広告本数の上限が実質解除。VFルールは10ファイル→3ファイルの宣言的テーブル化だが順序固定テスト付きで挙動同値。Phoenix検索クエリ埋め込みの複製範囲バグ修正(パディングスロットへの混入を除去)。SID再構成モード(既定オフ)、DPA sid_codes(配線なし)、暗号化チェックポイント安全弁。ランキング重みは7日連続無変更、grox返信閾値120k据え置き"
+    },
+    {
+      "date": "2026-09-03",
+      "from_sha": "7ba776848b12d8422eb0f291ee03ea5c17ab0188",
+      "to_sha": "85ac72a1bba41f21615e3f0bca56da75970a6633",
+      "report": "reports/2026-09-03.md",
+      "headline": "小〜中規模差分(34ファイル/+1,081-525)。ランキング重み8日連続無変更、広告ブレンダーmulti_risk据え置き、grox返信閾値120,000で9日連続据え置き。最重要: 候補生成(retrieval)側のユーザー行動履歴集約が DENSE_WITH_SHORT_DWELL → DENSE_WITH_LONG_DWELL(param.rs:133-138、EnableRetrievalSequenceHydration既定true=稼働中)。8/26にランキング側(PhoenixAggregationType)で行われた同じ移行がretrievalにも適用され両系統がLONG_DWELLで揃った=『サッと開いて閉じた投稿』が候補集合を作る段階からも外れ、釣りタイトル戦術は並べ替え・候補生成の二重で不利に。実影響もう2件: (1)Phoenix推論バッチの候補埋め込みバッファ初期化漏れ修正(python.rs:2027 shard_slice.fill(f16::ZERO)、2047 sq_slice.fill(0.0))——使い回しバッファに前リクエストの残留ベクトルが残り得た(input_buffer=Noneのスロット/行幅より短いsrcの余り/バッチ末尾の未使用スロット)。9/02の検索クエリ埋め込み複製バグ修正と同系統。(2)Grokへのカードタイトル表記が Title: → [Card Title](data_types.py:376,448)で[Card]/[Card Image]と統一=カードタイトル欄経由の判定誘導が困難に、正当な記事見出しの本文誤読も減。新規機能: Scarecrowに XReview 人手審査キューへのgRPC自動投函を新設(3ファイル329行、CreateXReviewReportProd/Staging、なりすましは専用種別bystander_impersonation、reporter_id=0・victim_user_id添付・detection_timestamp_msでcontent-hash通報IDをユニーク化し証拠ロールアップ適用)。呼び出すBotmakerルールはリポジトリ外=要確認。学習側: 二塔リトリーバルのcombined構成が qk_norm False→True、attn_logit_cap 80.0→-1(無効化)でnano構成と一致(xrecsys_two_tower.py:273-274)、反映は再学習後=要確認。準備段階: リランカー適用前のbackbone_scoresを全5フィードエンドポイントで常時取得し候補に添付(server.rs:335/468/511/626/727、candidate.rs:30、proto field20/10/11)、ランキングには一切不使用でログ・学習用=8/29のRerankerHeadTagと合わせオフポリシー学習のデータが揃う。挙動同値: VFをPolicies→RuleEngineの静的テーブル化(Box<dyn Rule>とRuleトレイト撤廃、&'static [RuleSpec]、registry.rs:79-105)＋安全ラベルのArc共有化で値コピー除去。順序固定テストとゴールデンコーパス91ケースで同値担保、ルール名の重複禁止テストを新設。インフラ: 暗号化チェックポイントの_DEK不在時にエンベロープヘッダ(XAIENC01/xai-dek1:)からmaster鍵を復元するDEK引き継ぎ。"
     }
   ]
 }
