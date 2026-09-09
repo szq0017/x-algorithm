@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "902a06fd616ed815f660e5546d16d492fa1ca825",
-  "last_analyzed_at": "2026-09-05",
+  "last_analyzed_sha": "49815da255010f2468fb87b8bdd1283c2a507ca8",
+  "last_analyzed_at": "2026-09-09",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -126,6 +126,13 @@
       "to_sha": "902a06fd616ed815f660e5546d16d492fa1ca825",
       "report": "reports/2026-09-05.md",
       "headline": "小規模差分(25ファイル/+480-179)、ユーザー行動を変える変更なし。ランキング重み10日連続無変更、広告/grox(返信閾値120,000は11日連続)/Thunder/candidate-pipeline も無変更。9/04のDMCAテイクダウン実効化と多段返信スパム検知は撤回・緩和なしでそのまま有効。実挙動の変化はコールドスタート(小規模アカウント押し上げ)周辺の2件: (1)cold_start_corpus_eligible の Treatment アームに && is_phoenix_moe(c) が追加(author_cold_start.rs:230)。従来は corpus==Treatment のみで取得経路を問わなかったため、treatment コーパスの小規模著者の投稿は従来 retrieval 経路のものも押し上げ対象だった。今後は Phoenix MoE 経路(served_type==ForYouPhoenixRetrievalMoe)の投稿のみ。直前の apply_moe_ranking_policy(195-212) が非keepのMoE候補をスコア0にする挙動と対象集合を一致させる整合修正。小規模アカウントが偶発的に上位に載る経路が1本減り、残る押し上げは意味的関連性の高い投稿に集中。(2)engagement_counts_hydrator の enable が EnableEngagementCountsHydration || is_shadow_traffic のみに(88-89)。EnableViewerColdStart による起動が削除され、コールドスタートは数値取得スイッチに従属(view_count_on_home が None だと is_some_and が false で押し上げ不発、author_cold_start.rs:310-311)。同時に !has_cached_posts ゲート撤去で、キャッシュ済み投稿を返すスクロール継続/ページング時も数値を再取得(取得対象は hydrate_from_client:118-121 の cold_start_base_eligible により小規模著者の原投稿のみ、TTL60秒)。小規模アカウントの投稿直後の伸びが下位スロットにも新鮮な数字で反映。計測系: コールドスタートのバケット記録を enabled 早期returnより前へ移動(348-361)し control/treatment 両アームで impression が同一件数になることを新テスト2件で固定=A/B効果測定のバイアス解消(施策採否判断の精度向上)。配管: recsys.proto に SlateContext.exactK/exactGap(1248-1249、近似最近傍の精度診断値、下流利用なし=要確認)と PredictNextActionsRequest.experiment_overrides(119、9/04のPhoenixExperimentOverridesの受け口、値を詰める箇所は本差分になし)。予告: VF の CoreFeature.text に expect(dead_code, reason=\"retained for the upcoming muted-keyword rule\") が付与(tweet.rs:3-6)され本文ハイドレーションのテスト追加=Rust VF に本文キーワードによる表示制御が入る予告(現時点で参照する規則はゼロ、仕様・時期とも不明=要確認)。挙動不変: VFダークトラフィックの複製先を staging に加え devel(PR単位環境)へ拡張(parse_staging_listener→parse_mirror_listener、環境別TLSドメイン)、VF公開APIを pub→pub(crate) へ縮小(判定ロジック不変)、mutual_follow_stats の moe_cluster 取得を分岐外へ、KMS DEK復号に指数バックオフ再試行(dek.py:17-45)、学習ログの extra= を key=value 出力、StableHLO MANIFEST の restamp、SIDインデックス定義を _sid_window ヘルパ化(TAIL の v5 パスは旧実装でも置換対象外で参照先不変)。要確認: recsys_bundle_export.py:315-316 で log_probs/cont_preds を bfloat16 へ丸めてから float32 に戻す処理が追加。サービング実行経路であれば近接スコア候補の並び順が入れ替わりうる(サービング数値との一致目的の意図的丸めとみるのが自然だが実行主体は本差分から確定不可)。"
+    },
+    {
+      "date": "2026-09-09",
+      "from_sha": "902a06fd616ed815f660e5546d16d492fa1ca825",
+      "to_sha": "49815da255010f2468fb87b8bdd1283c2a507ca8",
+      "report": "reports/2026-09-09.md",
+      "headline": "大規模差分(78ファイル/+10,938-982)。ランキング重みの数値は14日連続無変更だが、実影響の大きい変更が複数。(1)投稿のフォーマット特徴量ContentFeatures(動画/写真有無・メディア枚数・最長動画尺・重み付き文字数・改行数・外部リンク有無)をPhoenixモデル入力に新設し、ゲートなしで常時送信(content_features.rs、candidate.rs:295-296)。引用先も同特徴量を送る。(2)リポストは元投稿本文を採用(core_data_candidate_hydrator.rs:106-113)、引用リポストは本文+メディア情報を新規ハイドレート(quote_hydrator.rs:72-131)＝(1)の入力精度が大幅向上、引用先の質が自投稿の評価に混ざる。(3)ランキング重みの利用者ごとランダム摂動機構を新設(ranking_scorer.rs:182-236、WeightPerturbationSigma既定0.0=既定オフ)。26ヘッド全部をmd5(salt:user_id:head)の偶奇でexp(±σ)倍、閲覧者単位で決定的。有効化時はリーチ分散が増大。(4)grox返信閾値120,000→150,000(スパム二値判定/返信ランキングの境界、task_filter.py:17,185)、連携スパム下限5,000→10,000(:97)。12万〜15万層は返信ランキングからスパム二値判定へ移動、5千〜1万層は連携スパム監視外に。(5)検索向け新埋め込みv8-search稼働開始(renderer_v8_search.py)。著者の認証バッジ色・パロディ等ラベル・NSFWフラグ・自己紹介文・フォロワー階層・加入年月・国・言語・サブスク階層・動画の尺と画質バケットまで投稿の意味ベクトルに埋め込む。バックフィルはいいね足切りをQPS適応制御(adaptive_min_fav.py)。(6)長尺動画(30秒以上)の冒頭10秒クロップ成人向け再判定フロー新設(前歴ありはDeluxe閾値、なしはいいね512以上で無条件)、モーションリビールを常時化・16→32サンプル、判定プロンプトを「表向きはおとりかもしれない、暴かれた側がより悪質ならそちらで判定せよ」に強化(convo.py:23-30)。(7)Phoenix retrieval MoE推論クラスタExperiment1Fou→Experiment2Memy04、FA4カーネルのA100/H100対応、モデルチェックポイントのバンドル検証読み込み"
     }
   ]
 }
