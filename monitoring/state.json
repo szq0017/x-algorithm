@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "75d93d9b6c7d08124173c513a727c37460ed5b04",
-  "last_analyzed_at": "2026-09-10",
+  "last_analyzed_sha": "fee1d0f3e99c25e4c10499e1aba4061c8d1cc86d",
+  "last_analyzed_at": "2026-09-11",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -140,6 +140,13 @@
       "to_sha": "75d93d9b6c7d08124173c513a727c37460ed5b04",
       "report": "reports/2026-09-10.md",
       "headline": "可視性判定(VF)を理由ベース→処分(Action)ベースに全面作り替え: Avoid/Downrankは削除されなくなり(グレーゾーン投稿がFor You/フォロー中に復帰)、Tombstone/NotEvaluatedは削除。巻き添え判定も同基準に統一。バナー型新広告Header Image Prompt Ad新設(非ポスト・リプ/引用RT不可)。成人向け冒頭10秒審査のいいね64件免除を撤廃しライブ配信を対象化。主力ランキング設定xrecsys_seqpackからマルチモーダル埋め込みv5を撤去。ランキング重みは15日連続で無変更"
+    },
+    {
+      "date": "2026-09-11",
+      "from_sha": "75d93d9b6c7d08124173c513a727c37460ed5b04",
+      "to_sha": "fee1d0f3e99c25e4c10499e1aba4061c8d1cc86d",
+      "report": "reports/2026-09-11.md",
+      "headline": "可視性フィルタの障害時挙動を大幅改修(33ファイル): 全バックエンド問い合わせのタイムアウトを150ms→390msに統一、著者IDフォールバックキャッシュを既定オンで新設(最大100万件)し、TES失敗時の「無実の削除」を二段構えで抑制。併せて本文欠落時にNSFW/DMCA/nullcast判定まで無効化されていた不具合を修正(厳格化)。UTHに国別措置データ+日次集計ジョブ追加、proto に TREND_PAGE/EXPLORE_SPOTLIGHT と IMMERSIVE_LONG_DWELL を予約。ランキング重みは16日連続で変更なし"
     }
   ]
 }
