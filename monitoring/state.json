@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "fee1d0f3e99c25e4c10499e1aba4061c8d1cc86d",
-  "last_analyzed_at": "2026-09-11",
+  "last_analyzed_sha": "6bb4594253cdfa9ea19983a54a401d5ce8f8275d",
+  "last_analyzed_at": "2026-09-12",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -147,6 +147,13 @@
       "to_sha": "fee1d0f3e99c25e4c10499e1aba4061c8d1cc86d",
       "report": "reports/2026-09-11.md",
       "headline": "可視性フィルタの障害時挙動を大幅改修(33ファイル): 全バックエンド問い合わせのタイムアウトを150ms→390msに統一、著者IDフォールバックキャッシュを既定オンで新設(最大100万件)し、TES失敗時の「無実の削除」を二段構えで抑制。併せて本文欠落時にNSFW/DMCA/nullcast判定まで無効化されていた不具合を修正(厳格化)。UTHに国別措置データ+日次集計ジョブ追加、proto に TREND_PAGE/EXPLORE_SPOTLIGHT と IMMERSIVE_LONG_DWELL を予約。ランキング重みは16日連続で変更なし"
+    },
+    {
+      "date": "2026-09-12",
+      "from_sha": "fee1d0f3e99c25e4c10499e1aba4061c8d1cc86d",
+      "to_sha": "6bb4594253cdfa9ea19983a54a401d5ce8f8275d",
+      "report": "reports/2026-09-12.md",
+      "headline": "ランキング重みは17日連続で変更なし(24ファイル)。(1)多様性フィルタDPPに『シード投稿』ピン留め機能を追加——シードに似た候補を優先的に間引き、シードはtop_k(既定150)の枠を消費しない。ただしFor Youからは未配線(seed_tweet_id未設定)で現時点は稼働せず。(2)全世界テイクダウンの範囲縮小——『法的要請×xy』『第三者通報×xx/xy』が全世界非表示の対象外に(DMCA・理由未指定×全世界は従来通り非表示)。(3)ブラジル2026選挙フィルタ 2554→2707アカウント(+163/-10、ロジック変更なし)。(4)検索関連性のLLM判定アクション107/108を枠のみ予約。(5)Under the Hood閲覧ロールにemployee追加。(6)grox モーションリビールの誤検知対策。(7)スコアログのProtobuf二重書き込み開始"
     }
   ]
 }
