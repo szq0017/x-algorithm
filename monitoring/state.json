@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "fad2f71edc780ab14e4cfaebbb8b221385782e43",
-  "last_analyzed_at": "2026-09-16",
+  "last_analyzed_sha": "42266f3e2be54d8a3c4d2228aac2e8f8d1c1f034",
+  "last_analyzed_at": "2026-09-17",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -168,6 +168,13 @@
       "to_sha": "fad2f71edc780ab14e4cfaebbb8b221385782e43",
       "report": "reports/2026-09-16.md",
       "headline": "26ファイル: クリック後滞在時間(10秒超の二値)予測ヘッドを本番For You学習構成で有効化(損失重み1.0、履歴特徴量も追加)だが配信重みは0.0据え置き、広告購入金額予測のHuber損失学習を実装(既定0.0でオフ)、広告ブランドセーフティv2の既定値をtrue→falseにロールバック(実挙動変更)、grox返信対策の分界点15万→18万フォロワー+15万〜18万帯に専用モデルoai-gemma4-26b-reply-spam投入、Grokプロンプトで引用ポスト著者と自己引用を明示、配信側性別エンコードをproto列挙値そのままに変更(男女入れ替わり)。ScoringWeightsは21日連続変更なし"
+    },
+    {
+      "date": "2026-09-17",
+      "from_sha": "fad2f71edc780ab14e4cfaebbb8b221385782e43",
+      "to_sha": "42266f3e2be54d8a3c4d2228aac2e8f8d1c1f034",
+      "report": "reports/2026-09-17.md",
+      "headline": "中規模差分(64ファイル)、ランキング重みは22日連続据え置き。既定オンの実挙動変更2件: 著者コールドスタートの鮮度上限24h→48hかつ鮮度条件を全アームに適用(Control/Holdoutは無制限→48h、TreatmentはMoE経由要件が撤廃され対象拡大)、連携スパム検知の対象上限3万→5万フォロワー(取り締まり拡大)。grox返信Grok/Gemma分界18万→20万。既定オフの重要新設3件: クリック後滞在時間の合成を「いいね率ペナルティ」からcdwell×クリック確率(表示あたり期待滞在時間)へ再設計し旧5パラメータをコードごと削除(配信重みは0.0のまま)、FavHoldoutFilter新設(いいね数に応じ最大15%の閲覧者から決定論的に除外)、takedowns/モジュールとUnder the Hoodへの法的削除・DMCA理由の国別開示。proto: LLM_JUDGE_*_TO_SEARCH削除、107にCLIENT_TWEET_LIVE_STREAM_REPLY、広告遅延CV Tier2/3枠20種。挙動不変: VFのtwemcache実装約2600行を共通xai_cacheへ移管、EvaluateTweets RPC枠(未実装)、学習のis_delayed_feedback(bool)→sample_source(int8)一般化"
     }
   ]
 }
