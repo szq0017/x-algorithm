@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "c279172eb8a992170f077d4c1d441923ef215d2e",
-  "last_analyzed_at": "2026-09-18",
+  "last_analyzed_sha": "8b25829717a4f104dd04403ee7d0253c5fedb1b7",
+  "last_analyzed_at": "2026-09-19",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -182,6 +182,13 @@
       "to_sha": "c279172eb8a992170f077d4c1d441923ef215d2e",
       "report": "reports/2026-09-18.md",
       "headline": "小規模差分(30ファイル、+1491/-154)、ランキング重みは23日連続据え置き(home-mixer/scorers/は無変更)、param.rsは同期タイムスタンプのみ。既定オンの実挙動変更は1件: ブラジル2026選挙フィルタに69アカウント追加(2707→2776件、スイッチ不可の常時オン、非フォロワーのFor Youから本人・リポスト元・引用元・返信祖先ごと除外)。最大の新設: 「赤外線/サーモ映像を装った成人向けスパム動画」専用のGrox検知フロー(違反確定済み動画のコマ割りをblobstoreから既定15分ごとに配布し、動画付き・64いいね以上・未NSFW判定の投稿とGrok 4.1 Fast Visionで見比べる。ヒットで9/17新設のSpamManipulatedMedia/カテゴリSpam注釈。判定プロンプト(.j2)と見本データは非公開のため稼働状況・基準は要確認、正当な赤外線/サーモ映像に誤検知リスク)。既定オフ: 広告の遅延コンバージョン10ヘッドをtwinヘッドとして学習対象化しマスク設定3種をads_head_maskingに統合(遅延ヘッドは「クリック有り・早期成約なし」のみで学習、有効化なら検討期間の長い商材が有利化する方向)。配管のみ: 広告に時間窓別エンゲージメント数、投稿に検索語一致度SearchLexicalMatch(一致単語率・完全一致フレーズ、参照0件だがキーワードマッチ部分復権の予兆)。その他: Grokのウェブ検索許可ドメインを先頭5件に制限＋抽出順を投稿本文リンク優先・投稿者プロフィール後回しに変更(判定誘導の抜け道を塞ぐ)、不正対策サービスのKafkaマルチクラスタ化(全消費者停止でもreadyを返す/非既定クラスタのエラーがwatchdog対象外という静かな緩み2件)"
+    },
+    {
+      "date": "2026-09-19",
+      "from_sha": "c279172eb8a992170f077d4c1d441923ef215d2e",
+      "to_sha": "8b25829717a4f104dd04403ee7d0253c5fedb1b7",
+      "report": "reports/2026-09-19.md",
+      "headline": "41ファイル(+2877/-1828): 代替スコアリング方式dwell-regretとゲートモデルを全面削除(value_model_gate.rs -537行、関連パラメータ18件削除)しFor Youは加重和方式に一本化。Under the Hoodが「法的要請による国別非表示」を利用者に開示(README 9/18更新、9/11レポートの要確認が解消)。コールドスタート投稿専用のretrieval枠を新設(既定0=オフ、dataset_type=13)。可視性フィルタに新エンドポイントevaluate_tweetsとTES複合フェッチを導入。Grok成人向けスパム動画検知がいいね512以上で推論モードに。ランキング重みは24日連続変更なし"
     }
   ]
 }
