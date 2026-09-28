@@ -1,7 +1,6 @@
-use crate::params::RESULT_SIZE;
 use std::sync::LazyLock;
-use xai_home_mixer_proto::{BrandSafetyVerdict, FeedItem, ScoredPost, feed_item};
-use xai_post_text::TweetTokenizer;
+use xai_home_mixer_proto::{feed_item, BrandSafetyVerdict, FeedItem, ScoredPost};
+use xai_post_text::{TokenSequence, TweetTokenizer};
 use xai_recsys_proto::{AdIndexInfo, BrandSafetyRiskLevel};
 use xai_stats_receiver::global_stats_receiver;
 
@@ -23,6 +22,17 @@ pub(crate) struct AdSpacing {
 }
 
 pub(crate) fn has_avoid(post: &ScoredPost) -> bool {
+    matches!(
+        post.brand_safety_verdict(),
+        BrandSafetyVerdict::MediumRisk | BrandSafetyVerdict::HighRisk
+    )
+}
+
+pub(crate) fn is_high_risk(post: &ScoredPost) -> bool {
+    post.brand_safety_verdict() == BrandSafetyVerdict::HighRisk
+}
+
+pub(crate) fn is_medium_risk(post: &ScoredPost) -> bool {
     post.brand_safety_verdict() == BrandSafetyVerdict::MediumRisk
 }
 
@@ -76,6 +86,14 @@ pub(crate) fn is_bsr_low_ad(ad: &AdIndexInfo) -> bool {
     )
 }
 
+pub(crate) fn is_bsr_high_ad(ad: &AdIndexInfo) -> bool {
+    ad.ad_adjacency_control
+        .as_ref()
+        .map(|c| c.brand_safety_risk())
+        .unwrap_or(BrandSafetyRiskLevel::BsrUnknown)
+        == BrandSafetyRiskLevel::BsrHigh
+}
+
 pub(crate) fn should_drop_bsr_low(
     ad: &AdIndexInfo,
     above: Option<&ScoredPost>,
@@ -105,12 +123,14 @@ pub(crate) fn should_drop_handle(
         Some(ctrl) if !ctrl.handles.is_empty() => &ctrl.handles,
         _ => return false,
     };
-    above
-        .map(|p| handles.contains(&(p.author_id as i64)))
-        .unwrap_or(false)
-        || below
-            .map(|p| handles.contains(&(p.author_id as i64)))
-            .unwrap_or(false)
+    let in_handles = |id: u64| id != 0 && handles.contains(&(id as i64));
+    let matches = |p: &ScoredPost| {
+        in_handles(p.author_id)
+            || in_handles(p.retweeted_user_id)
+            || in_handles(p.quoted_user_id)
+            || p.ancestor_users.iter().any(|&id| in_handles(id))
+    };
+    above.map(matches).unwrap_or(false) || below.map(matches).unwrap_or(false)
 }
 
 pub(crate) fn should_drop_keyword(
@@ -118,36 +138,69 @@ pub(crate) fn should_drop_keyword(
     above: Option<&ScoredPost>,
     below: Option<&ScoredPost>,
 ) -> bool {
-    let keywords = match ad.ad_adjacency_control.as_ref() {
-        Some(ctrl) if !ctrl.keywords.is_empty() => &ctrl.keywords,
-        _ => return false,
+    let Some(tokenized_keywords) = tokenize_ad_keywords(ad) else {
+        return false;
     };
 
-    let tokenizer = &*TWEET_TOKENIZER;
+    let text_matches = |p: &ScoredPost| {
+        let tweet_tokens = TWEET_TOKENIZER.tokenize(&p.tweet_text);
+        tokens_match_any_keyword(&tweet_tokens, &tokenized_keywords)
+    };
+    above.map(text_matches).unwrap_or(false) || below.map(text_matches).unwrap_or(false)
+}
+
+pub(crate) fn keyword_matches(
+    ad: &AdIndexInfo,
+    above: Option<&ScoredPost>,
+    below: Option<&ScoredPost>,
+    slot_tokens: &mut Option<[Option<TokenSequence>; 2]>,
+) -> bool {
+    let Some(keywords) = tokenize_ad_keywords(ad) else {
+        return false;
+    };
+    let tokens = slot_tokens.get_or_insert_with(|| {
+        [above, below].map(|post| post.map(|p| tokenize_tweet_text(&p.tweet_text)))
+    });
+    let matches = |t: &Option<TokenSequence>| {
+        t.as_ref()
+            .is_some_and(|t| tokens_match_any_keyword(t, &keywords))
+    };
+    matches(&tokens[0]) || matches(&tokens[1])
+}
+
+pub(crate) fn tokenize_tweet_text(text: &str) -> TokenSequence {
+    TWEET_TOKENIZER.tokenize(text)
+}
+
+pub(crate) fn tokenize_ad_keywords(ad: &AdIndexInfo) -> Option<Vec<TokenSequence>> {
+    let keywords = match ad.ad_adjacency_control.as_ref() {
+        Some(ctrl) if !ctrl.keywords.is_empty() => &ctrl.keywords,
+        _ => return None,
+    };
 
     let tokenized_keywords: Vec<_> = keywords
         .iter()
-        .map(|kw| tokenizer.tokenize(kw))
+        .map(|kw| TWEET_TOKENIZER.tokenize(kw))
         .filter(|seq| !seq.is_empty())
         .collect();
 
     if tokenized_keywords.is_empty() {
+        None
+    } else {
+        Some(tokenized_keywords)
+    }
+}
+
+pub(crate) fn tokens_match_any_keyword(
+    tweet_tokens: &TokenSequence,
+    keywords: &[TokenSequence],
+) -> bool {
+    if tweet_tokens.is_empty() {
         return false;
     }
-
-    let text_matches = |p: &ScoredPost| {
-        if p.tweet_text.is_empty() {
-            return false;
-        }
-        let tweet_tokens = tokenizer.tokenize(&p.tweet_text);
-        if tweet_tokens.is_empty() {
-            return false;
-        }
-        tokenized_keywords
-            .iter()
-            .any(|kw_tokens| tweet_tokens.contains_keyword_sequence(kw_tokens))
-    };
-    above.map(text_matches).unwrap_or(false) || below.map(text_matches).unwrap_or(false)
+    keywords
+        .iter()
+        .any(|kw_tokens| tweet_tokens.contains_keyword_sequence(kw_tokens))
 }
 
 pub(crate) fn posts_to_feed_items(scored_posts: Vec<ScoredPost>) -> Vec<FeedItem> {
@@ -165,6 +218,7 @@ pub(crate) fn interleave_and_finalize(
     scored_posts: Vec<ScoredPost>,
     ads: Vec<AdIndexInfo>,
     placements: &[usize],
+    result_size: usize,
 ) -> Vec<FeedItem> {
     let n = scored_posts.len();
     let mut items: Vec<FeedItem> = Vec::with_capacity(n + placements.len());
@@ -185,7 +239,7 @@ pub(crate) fn interleave_and_finalize(
         });
     }
 
-    items.truncate(RESULT_SIZE);
+    items.truncate(result_size);
     if matches!(items.last(), Some(item) if matches!(item.item, Some(feed_item::Item::Ad(_)))) {
         items.pop();
     }

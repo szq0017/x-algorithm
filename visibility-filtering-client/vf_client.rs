@@ -1,0 +1,1586 @@
+use crate::discovery::{build_vf_channel, VfChannel, VfChannelError, VfChannelParams, VfDiscovery};
+use crate::evaluated::{decode_action, EvaluationResult};
+use crate::models::{Action, DropReason, FilteredReason, SafetyResult};
+use crate::tweet_safety_label::{proto_to_safety_label_map, SafetyLabelFailure};
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::error::Error;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+use thrift::protocol::{
+    TFieldIdentifier, TInputProtocol, TOutputProtocol, TStructIdentifier, TType,
+};
+use tonic::async_trait;
+use tonic::codec::CompressionEncoding;
+use tonic::transport::Channel;
+use xai_safety_label_store::types::SafetyLabelMap;
+use xai_stats_receiver::global_stats_receiver;
+use xai_strato::{
+    decode, encode, MValCodec, StratoGrpc, StratoGrpcConfig, StratoResult, StratoValue,
+};
+use xai_twittercontext_proto::TwitterContextViewer;
+use xai_visibility_filtering_proto as vf_pb;
+use xai_visibility_filtering_proto::visibility_filtering_service_client::VisibilityFilteringServiceClient;
+use xai_x_rpc::balanced_channel::{LbPolicy, LoadBalancedChannel};
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, Hash, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum SafetyLevel {
+    #[default]
+    FilterNone = 0,
+    SearchTop = 6,
+    SearchLatest = 7,
+    TimelineHome = 8,
+    TimelineHomeRecommendations = 61,
+    SearchPhoto = 93,
+    SearchVideo = 94,
+    SearchTopQig = 165,
+    SearchTopSafeSearchEnabled = 227,
+    ExploreNsfwRecommendations = 236,
+    ImmersiveExpandedRecommendations = 247,
+}
+
+impl SafetyLevel {
+    pub fn from_tag(tag: i32) -> Option<Self> {
+        match tag {
+            0 => Some(Self::FilterNone),
+            6 => Some(Self::SearchTop),
+            7 => Some(Self::SearchLatest),
+            8 => Some(Self::TimelineHome),
+            61 => Some(Self::TimelineHomeRecommendations),
+            93 => Some(Self::SearchPhoto),
+            94 => Some(Self::SearchVideo),
+            165 => Some(Self::SearchTopQig),
+            227 => Some(Self::SearchTopSafeSearchEnabled),
+            236 => Some(Self::ExploreNsfwRecommendations),
+            247 => Some(Self::ImmersiveExpandedRecommendations),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct VisibilityFilteringLookupContext {
+    pub safety_level: SafetyLevel,
+    pub for_user_id: u64,
+}
+
+impl MValCodec for VisibilityFilteringLookupContext {
+    fn thrift_type() -> TType {
+        TType::Struct
+    }
+
+    fn from_thrift(_proto: &mut dyn TInputProtocol) -> Self {
+        panic!("LookupContext should not be decoded from Thrift")
+    }
+
+    fn to_thrift(&self, proto: &mut dyn TOutputProtocol) {
+        let struct_id = TStructIdentifier::new("VisibilityFilteringLookupContext");
+        proto.write_struct_begin(&struct_id).unwrap();
+        proto
+            .write_field_begin(&TFieldIdentifier::new("safety_level", TType::I32, 1))
+            .unwrap();
+        self.safety_level.to_thrift(proto);
+        proto.write_field_end().unwrap();
+        proto
+            .write_field_begin(&TFieldIdentifier::new("for_user_id", TType::I64, 2))
+            .unwrap();
+        proto.write_i64(self.for_user_id as i64).unwrap();
+        proto.write_field_end().unwrap();
+        proto.write_field_stop().unwrap();
+        proto.write_struct_end().unwrap();
+    }
+}
+
+impl MValCodec for SafetyLevel {
+    fn thrift_type() -> TType {
+        TType::I32
+    }
+
+    fn from_thrift(_proto: &mut dyn TInputProtocol) -> Self {
+        panic!("QueryFields should not be decoded from Thrift")
+    }
+
+    fn to_thrift(&self, proto: &mut dyn TOutputProtocol) {
+        proto.write_i32(self.clone() as i32).unwrap();
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TweetVisibility {
+    pub action: Action,
+    pub reason: Option<FilteredReason>,
+    pub safety_labels: Result<SafetyLabelMap, SafetyLabelFailure>,
+}
+
+impl TweetVisibility {
+    pub fn to_visibility_reason(&self) -> Option<FilteredReason> {
+        if matches!(self.reason, Some(FilteredReason::SafetyResult(_))) {
+            return self.reason.clone();
+        }
+        match self.action {
+            Action::Allow => None,
+            Action::Interstitial => Some(FilteredReason::SafetyResult(SafetyResult {
+                reason: None,
+                action: Action::Interstitial,
+            })),
+            _ => Some(
+                self.reason
+                    .clone()
+                    .unwrap_or(FilteredReason::UnspecifiedReason),
+            ),
+        }
+    }
+}
+
+#[async_trait]
+pub trait VfClient {
+    async fn get_result(
+        &self,
+        post_ids: Vec<u64>,
+        safety_level: SafetyLevel,
+        for_user_id: u64,
+        context: Option<TwitterContextViewer>,
+    ) -> HashMap<u64, Result<TweetVisibility>>;
+}
+
+pub struct StratoVfClient {
+    pub grpc_client: Arc<StratoGrpc>,
+}
+
+impl StratoVfClient {
+    pub async fn new(
+        ca_cert_path: String,
+        client_cert_path: String,
+        client_key_path: String,
+        client_id: String,
+        datacenter: String,
+    ) -> Result<Self, Box<dyn Error>> {
+        let service_url = format!("", datacenter);
+        let strato_grpc_config = StratoGrpcConfig {
+            ca_cert_path,
+            client_cert_path,
+            client_key_path,
+            aperture_size: Some(12),
+            connect_timeout_ms: 400,
+            request_timeout_ms: 990,
+            client_id: Some(client_id),
+            service_url,
+            zone: datacenter,
+            ..Default::default()
+        };
+        let grpc_client: StratoGrpc = StratoGrpc::new(strato_grpc_config).await?;
+        Ok(Self {
+            grpc_client: Arc::new(grpc_client),
+        })
+    }
+}
+
+fn action_from_strato_reason(reason: &Option<FilteredReason>) -> Action {
+    match reason {
+        None => Action::Allow,
+        Some(FilteredReason::SafetyResult(safety_result)) => match safety_result.action {
+            Action::NotEvaluated => Action::Allow,
+            _ => safety_result.action.clone(),
+        },
+        Some(_) => Action::Drop(DropReason {}),
+    }
+}
+
+#[async_trait]
+impl VfClient for StratoVfClient {
+    async fn get_result(
+        &self,
+        tweet_ids: Vec<u64>,
+        safety_level: SafetyLevel,
+        for_user_id: u64,
+        context: Option<TwitterContextViewer>,
+    ) -> HashMap<u64, Result<TweetVisibility>> {
+        let client = &self.grpc_client;
+        let view = VisibilityFilteringLookupContext {
+            safety_level,
+            for_user_id,
+        };
+        let calls: Vec<_> = tweet_ids
+            .iter()
+            .map(|tweet_id| {
+                let args = vec![encode(&(*tweet_id, view.clone()))];
+                (
+                    "visibility/service/homeMixerFilteredReason.Tweet".to_string(),
+                    "fetch".to_string(),
+                    args,
+                )
+            })
+            .collect::<Vec<(String, String, Vec<Vec<u8>>)>>();
+        let result_batch = client.batch_call(calls, context.as_ref()).await;
+        let mut result_map: HashMap<u64, Result<TweetVisibility>> = HashMap::new();
+        for (tweet_id, bytes_result) in tweet_ids.iter().zip(result_batch) {
+            let item_result = match bytes_result {
+                Ok(bytes) => {
+                    let decoded: StratoResult<StratoValue<FilteredReason>> = decode(&bytes);
+                    match decoded {
+                        StratoResult::Ok(strato_value) => {
+                            let reason = strato_value.v;
+                            Ok(TweetVisibility {
+                                action: action_from_strato_reason(&reason),
+                                reason,
+                                safety_labels: Err(SafetyLabelFailure::LookupFailed),
+                            })
+                        }
+                        StratoResult::Err(err) => {
+                            Err(anyhow!("Strato error code {}: {}", err.code, err.message))
+                        }
+                    }
+                }
+                Err(err) => Err(err),
+            };
+            result_map.insert(*tweet_id, item_result);
+        }
+        result_map
+    }
+}
+
+const XAI_VF_DEFAULT_TIMEOUT_MS: u64 = 400;
+const XAI_VF_MAX_BATCH_SIZE: usize = 50;
+const XAI_VF_APERTURE_SIZE: usize = 16;
+const VF_FILTER_TWEETS_DISCOVERY_ENV: &str = "VF_FILTER_TWEETS_DISCOVERY";
+
+pub struct XaiVfClient {
+    client: FilterTweetsServiceClient,
+    timeout: Duration,
+}
+
+#[derive(Clone)]
+enum FilterTweetsServiceClient {
+    Wily(VisibilityFilteringServiceClient<Channel>),
+    Xds(VisibilityFilteringServiceClient<LoadBalancedChannel>),
+}
+
+impl FilterTweetsServiceClient {
+    async fn evaluate_tweets(
+        &mut self,
+        request: tonic::Request<vf_pb::EvaluateTweetsRequest>,
+    ) -> Result<tonic::Response<vf_pb::EvaluateTweetsResponse>, tonic::Status> {
+        match self {
+            Self::Wily(c) => c.evaluate_tweets(request).await,
+            Self::Xds(c) => c.evaluate_tweets(request).await,
+        }
+    }
+
+    async fn filter_tweets(
+        &mut self,
+        request: tonic::Request<vf_pb::VisibilityFilterRequest>,
+    ) -> Result<tonic::Response<vf_pb::VisibilityFilterResponse>, tonic::Status> {
+        match self {
+            Self::Wily(c) => c.filter_tweets(request).await,
+            Self::Xds(c) => c.filter_tweets(request).await,
+        }
+    }
+}
+
+fn filter_tweets_channel_params(dc: &str) -> VfChannelParams<'_> {
+    VfChannelParams {
+        name: "vf-filter-tweets",
+        dc,
+        discovery: VfDiscovery::from_env(VF_FILTER_TWEETS_DISCOVERY_ENV),
+        aperture_size: XAI_VF_APERTURE_SIZE,
+        deterministic_aperture: std::env::var("APP_ENV").as_deref() == Ok("prod"),
+        xds_lb_policy: LbPolicy::least_request(),
+    }
+}
+
+fn channel_error_to_anyhow(e: VfChannelError) -> anyhow::Error {
+    match e {
+        VfChannelError::Config(e) | VfChannelError::Connect(e) => e,
+    }
+}
+
+fn make_filter_tweets_client<T>(channel: T) -> VisibilityFilteringServiceClient<T>
+where
+    T: tonic::client::GrpcService<tonic::body::Body>,
+    T::Error: Into<tonic::codegen::StdError>,
+    T::ResponseBody: tonic::codegen::Body<Data = tonic::codegen::Bytes> + Send + 'static,
+    <T::ResponseBody as tonic::codegen::Body>::Error: Into<tonic::codegen::StdError> + Send,
+{
+    VisibilityFilteringServiceClient::new(channel)
+        .send_compressed(CompressionEncoding::Zstd)
+        .accept_compressed(CompressionEncoding::Zstd)
+}
+
+impl XaiVfClient {
+    pub async fn evaluate_tweets(
+        &self,
+        mut request: vf_pb::EvaluateTweetsRequest,
+    ) -> Result<Vec<EvaluationResult>> {
+        let tweets = std::mem::take(&mut request.tweets);
+        let chunks: Vec<_> = tweets
+            .chunks(XAI_VF_MAX_BATCH_SIZE)
+            .map(|chunk| {
+                let request = &request;
+                async move {
+                    let mut client = self.client.clone();
+                    let rpc = tonic::Request::new(vf_pb::EvaluateTweetsRequest {
+                        tweets: chunk.to_vec(),
+                        ..request.clone()
+                    });
+                    let response = client.evaluate_tweets(rpc).await?.into_inner();
+                    decode_response(chunk, response)
+                }
+            })
+            .collect();
+        let results = tokio::time::timeout(self.timeout, futures::future::try_join_all(chunks))
+            .await
+            .map_err(|_| anyhow!("VF evaluation deadline exceeded"))??;
+        Ok(results.into_iter().flatten().collect())
+    }
+
+    pub fn from_channel(channel: Channel) -> Self {
+        Self {
+            client: FilterTweetsServiceClient::Wily(make_filter_tweets_client(channel)),
+            timeout: Duration::from_millis(XAI_VF_DEFAULT_TIMEOUT_MS),
+        }
+    }
+
+    pub async fn connect(datacenter: &str) -> Result<Self> {
+        let params = filter_tweets_channel_params(datacenter);
+        let client = match build_vf_channel(&params)
+            .await
+            .map_err(channel_error_to_anyhow)?
+        {
+            VfChannel::Wily(ch) => FilterTweetsServiceClient::Wily(make_filter_tweets_client(ch)),
+            VfChannel::Xds(ch) => FilterTweetsServiceClient::Xds(make_filter_tweets_client(ch)),
+        };
+
+        Ok(Self {
+            client,
+            timeout: Duration::from_millis(XAI_VF_DEFAULT_TIMEOUT_MS),
+        })
+    }
+
+    pub fn with_timeout_ms(mut self, timeout_ms: u64) -> Self {
+        self.timeout = if timeout_ms == 0 {
+            Duration::from_millis(XAI_VF_DEFAULT_TIMEOUT_MS)
+        } else {
+            Duration::from_millis(timeout_ms)
+        };
+        self
+    }
+}
+
+fn decode_response(
+    requested: &[vf_pb::TweetData],
+    response: vf_pb::EvaluateTweetsResponse,
+) -> Result<Vec<EvaluationResult>> {
+    use vf_pb::tweet_evaluation::Outcome;
+    anyhow::ensure!(
+        response.results.len() == requested.len(),
+        "VF tweet count mismatch"
+    );
+    requested
+        .iter()
+        .zip(response.results)
+        .map(|(expected, result)| {
+            anyhow::ensure!(
+                result.tweet.as_ref() == Some(expected),
+                "VF tweet order mismatch"
+            );
+            Ok(match result.outcome {
+                Some(Outcome::ActionThriftCompact(bytes)) => {
+                    EvaluationResult::Evaluated(Box::new(decode_action(&bytes)?))
+                }
+                Some(Outcome::NotEvaluated(_)) => EvaluationResult::NotEvaluated,
+                Some(Outcome::Failed(_)) => EvaluationResult::Failed,
+                None => anyhow::bail!("missing VF outcome"),
+            })
+        })
+        .collect()
+}
+
+fn to_proto_safety_level(level: SafetyLevel) -> vf_pb::SafetyLevel {
+    match level {
+        SafetyLevel::TimelineHome => vf_pb::SafetyLevel::TimelineHome,
+        SafetyLevel::TimelineHomeRecommendations => vf_pb::SafetyLevel::TimelineHomeRecommendations,
+        SafetyLevel::ExploreNsfwRecommendations | SafetyLevel::ImmersiveExpandedRecommendations => {
+            vf_pb::SafetyLevel::ImmersiveExpandedRecommendations
+        }
+        SafetyLevel::FilterNone
+        | SafetyLevel::SearchTop
+        | SafetyLevel::SearchLatest
+        | SafetyLevel::SearchPhoto
+        | SafetyLevel::SearchVideo
+        | SafetyLevel::SearchTopQig
+        | SafetyLevel::SearchTopSafeSearchEnabled => vf_pb::SafetyLevel::FilterAll,
+    }
+}
+
+fn result_to_visibility(result: vf_pb::TweetVisibilityResult) -> TweetVisibility {
+    let safety_labels = result
+        .safety_labels
+        .map(|m| proto_to_safety_label_map(&m))
+        .ok_or(SafetyLabelFailure::LookupFailed);
+    TweetVisibility {
+        action: result.action.map(Action::from).unwrap_or_default(),
+        reason: result.filtered_reason.map(FilteredReason::from),
+        safety_labels,
+    }
+}
+
+fn results_to_map(
+    requested_tweet_ids: &[u64],
+    results: Vec<vf_pb::TweetVisibilityResult>,
+) -> HashMap<u64, Result<TweetVisibility>> {
+    let mut map: HashMap<u64, Result<TweetVisibility>> = results
+        .into_iter()
+        .map(|r| (r.tweet_id, Ok(result_to_visibility(r))))
+        .collect();
+    for &tweet_id in requested_tweet_ids {
+        map.entry(tweet_id).or_insert_with(|| {
+            Ok(TweetVisibility {
+                action: Action::NotEvaluated,
+                reason: Some(FilteredReason::UnspecifiedReason),
+                safety_labels: Err(SafetyLabelFailure::LookupFailed),
+            })
+        });
+    }
+    map
+}
+
+fn rpc_error_map(
+    tweet_ids: &[u64],
+    status: &tonic::Status,
+) -> HashMap<u64, Result<TweetVisibility>> {
+    tweet_ids
+        .iter()
+        .map(|&tweet_id| {
+            (
+                tweet_id,
+                Err(anyhow!("Rust VF filter_tweets error: {status}")),
+            )
+        })
+        .collect()
+}
+
+fn classify_filter_tweets_error_code(code: tonic::Code) -> &'static str {
+    match code {
+        tonic::Code::DeadlineExceeded => "deadline_exceeded",
+        tonic::Code::Cancelled => "cancelled",
+        tonic::Code::Unavailable => "unavailable",
+        _ => "other",
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct FilterTweetsClientMetrics {
+    error_codes: Vec<&'static str>,
+    failed_ids: u64,
+}
+
+impl FilterTweetsClientMetrics {
+    fn record_failed_chunk(&mut self, code: &'static str, id_count: usize) {
+        self.error_codes.push(code);
+        self.failed_ids += id_count as u64;
+    }
+}
+
+enum FilterTweetsRequestStatus {
+    Completed,
+    Degraded,
+    Cancelled,
+}
+
+struct FilterTweetsRequestMetricsGuard {
+    receiver: Option<Arc<dyn xai_stats_receiver::StatsReceiverExt>>,
+    status: FilterTweetsRequestStatus,
+}
+
+impl FilterTweetsRequestMetricsGuard {
+    fn new() -> Self {
+        Self {
+            receiver: global_stats_receiver(),
+            status: FilterTweetsRequestStatus::Cancelled,
+        }
+    }
+
+    fn mark_completed(&mut self, metrics: &FilterTweetsClientMetrics) {
+        self.status = if metrics.failed_ids > 0 {
+            FilterTweetsRequestStatus::Degraded
+        } else {
+            FilterTweetsRequestStatus::Completed
+        };
+    }
+}
+
+impl Drop for FilterTweetsRequestMetricsGuard {
+    fn drop(&mut self) {
+        let Some(sr) = &self.receiver else {
+            return;
+        };
+        let status = match self.status {
+            FilterTweetsRequestStatus::Completed => "completed",
+            FilterTweetsRequestStatus::Degraded => "degraded",
+            FilterTweetsRequestStatus::Cancelled => "cancelled",
+        };
+        sr.incr("vf_client_filter_tweets", &[("requests", status)], 1);
+    }
+}
+
+fn emit_filter_tweets_client_metrics(latency_ms: f64, metrics: &FilterTweetsClientMetrics) {
+    let Some(sr) = global_stats_receiver() else {
+        return;
+    };
+    sr.observe(
+        "vf_client_filter_tweets_latency_ms",
+        &[],
+        latency_ms,
+        xai_stats_receiver::HistogramBuckets::Bucket50To500,
+    );
+    for code in &metrics.error_codes {
+        sr.incr("vf_client_filter_tweets_error", &[("code", *code)], 1);
+    }
+    if metrics.failed_ids > 0 {
+        sr.incr(
+            "vf_client_filter_tweets_failed_ids",
+            &[],
+            metrics.failed_ids,
+        );
+    }
+}
+
+#[async_trait]
+impl VfClient for XaiVfClient {
+    async fn get_result(
+        &self,
+        tweet_ids: Vec<u64>,
+        safety_level: SafetyLevel,
+        for_user_id: u64,
+        context: Option<TwitterContextViewer>,
+    ) -> HashMap<u64, Result<TweetVisibility>> {
+        if tweet_ids.is_empty() {
+            return HashMap::new();
+        }
+
+        let start = Instant::now();
+        let mut request_guard = FilterTweetsRequestMetricsGuard::new();
+        let country_code = context
+            .map(|v| v.request_country_code)
+            .filter(|c| !c.is_empty());
+        let safety_level_proto = to_proto_safety_level(safety_level) as i32;
+
+        let chunk_futures: Vec<_> = tweet_ids
+            .chunks(XAI_VF_MAX_BATCH_SIZE)
+            .map(|chunk| {
+                let chunk_ids = chunk.to_vec();
+                let country_code = country_code.clone();
+                let timeout = self.timeout;
+                let mut client = self.client.clone();
+                async move {
+                    let tweets = chunk_ids
+                        .iter()
+                        .map(|&tweet_id| vf_pb::TweetInput {
+                            tweet_id,
+                            author_id: None,
+                        })
+                        .collect();
+
+                    let mut request = tonic::Request::new(vf_pb::VisibilityFilterRequest {
+                        safety_level: safety_level_proto,
+                        tweets,
+                        viewer_id: Some(for_user_id),
+                        country_code,
+                    });
+                    request.set_timeout(timeout);
+
+                    match client.filter_tweets(request).await {
+                        Ok(response) => (
+                            results_to_map(&chunk_ids, response.into_inner().results),
+                            None,
+                        ),
+                        Err(status) => {
+                            let code = classify_filter_tweets_error_code(status.code());
+                            let n = chunk_ids.len();
+                            (rpc_error_map(&chunk_ids, &status), Some((code, n)))
+                        }
+                    }
+                }
+            })
+            .collect();
+
+        let mut out = HashMap::with_capacity(tweet_ids.len());
+        let mut metrics = FilterTweetsClientMetrics::default();
+        for (chunk_map, err) in futures::future::join_all(chunk_futures).await {
+            if let Some((code, n)) = err {
+                metrics.record_failed_chunk(code, n);
+            }
+            out.extend(chunk_map);
+        }
+
+        request_guard.mark_completed(&metrics);
+        emit_filter_tweets_client_metrics(start.elapsed().as_secs_f64() * 1000.0, &metrics);
+        out
+    }
+}
+
+pub struct MockVfClient;
+
+#[async_trait]
+impl VfClient for MockVfClient {
+    async fn get_result(
+        &self,
+        _user_ids: Vec<u64>,
+        _safety_level: SafetyLevel,
+        _for_user_id: u64,
+        _context: Option<TwitterContextViewer>,
+    ) -> HashMap<u64, Result<TweetVisibility>> {
+        HashMap::new()
+    }
+}
+
+#[cfg(test)]
+#[cfg(target_os = "macos")]
+mod tests {
+    use crate::models::{Action, FilteredReason};
+    use lazy_static::lazy_static;
+
+    lazy_static! {
+        pub static ref SAMPLE_VF_RESPONSE: Vec<Vec<u8>> = vec![vec![
+            12, 0, 4, 12, 9, 252, 12, 0, 118, 12, 105, 20, 12, 0, 11, 12, 0, 2, 12, 0, 15, 8, 0, 2,
+            0, 0, 0, 1, 0, 0, 0, 0, 0, 8, 193, 236, 255, 255, 255, 255, 0, 0, 0
+        ]];
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_decode_simple() {
+        use xai_strato::{decode, StratoResult, StratoValue};
+
+        let bytes_batch = &SAMPLE_VF_RESPONSE;
+        let bytes = &bytes_batch[0];
+
+        let result: StratoResult<StratoValue<FilteredReason>> = decode(bytes);
+        match result {
+            StratoResult::Ok(strato_value) => {
+                assert!(strato_value.v.is_some());
+                let reason = strato_value.v.unwrap();
+                match reason {
+                    FilteredReason::SafetyResult(safety_result) => {
+                        assert_eq!(safety_result.action, Action::Avoid);
+                    }
+                    _ => panic!("Unexpected reason: {:?}", reason),
+                }
+            }
+            StratoResult::Err(x) => {
+                panic!("Error decoding: {:?}", x);
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod rust_vf_tests {
+    use super::*;
+    use crate::models::Action;
+    use std::net::SocketAddr;
+    use tokio::sync::Mutex;
+    use tokio_stream::wrappers::TcpListenerStream;
+    use tonic::transport::Server;
+    use tonic::{Request, Response, Status};
+    use xai_visibility_filtering_proto::visibility_filtering_service_server::{
+        VisibilityFilteringService, VisibilityFilteringServiceServer,
+    };
+
+    #[test]
+    fn decode_response_requires_complete_ordered_tweets_and_outcomes() {
+        use vf_pb::tweet_evaluation::Outcome;
+        let tweets = [
+            vf_pb::TweetData {
+                tweet_id: 1,
+                quote_context: None,
+            },
+            vf_pb::TweetData {
+                tweet_id: 1,
+                quote_context: Some(vf_pb::QuoteContext {
+                    outer_tweet_id: 2,
+                    outer_author_id: Some(3),
+                }),
+            },
+        ];
+        let results = vec![
+            vf_pb::TweetEvaluation {
+                tweet: Some(tweets[0]),
+                outcome: Some(Outcome::ActionThriftCompact(vec![0x2c, 0, 0].into())),
+            },
+            vf_pb::TweetEvaluation {
+                tweet: Some(tweets[1]),
+                outcome: Some(Outcome::Failed(vf_pb::Failed {})),
+            },
+        ];
+        let decode = |results| decode_response(&tweets, vf_pb::EvaluateTweetsResponse { results });
+        assert_eq!(
+            decode(results.clone()).unwrap(),
+            vec![
+                EvaluationResult::Evaluated(Box::new(xai_x_thrift::action::Action::Allow(
+                    xai_x_thrift::action::Allow::new()
+                ))),
+                EvaluationResult::Failed
+            ]
+        );
+        let mut reversed = results.clone();
+        reversed.reverse();
+        let mut missing = results.clone();
+        missing.pop();
+        let mut wrong_quote = results.clone();
+        wrong_quote[1].tweet.as_mut().unwrap().quote_context = None;
+        let mut absent = results.clone();
+        absent[0].outcome = None;
+        let mut corrupt = results;
+        corrupt[0].outcome = Some(Outcome::ActionThriftCompact(vec![0x2c].into()));
+        for results in [reversed, missing, wrong_quote, absent, corrupt] {
+            assert!(decode(results).is_err());
+        }
+    }
+
+    struct EvaluateStub {
+        calls: Arc<std::sync::atomic::AtomicUsize>,
+        fail_chunks_smaller_than: usize,
+        hang: bool,
+    }
+
+    #[tonic::async_trait]
+    impl VisibilityFilteringService for EvaluateStub {
+        async fn evaluate_tweets(
+            &self,
+            request: Request<vf_pb::EvaluateTweetsRequest>,
+        ) -> Result<Response<vf_pb::EvaluateTweetsResponse>, Status> {
+            self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if self.hang {
+                std::future::pending::<()>().await;
+            }
+            let tweets = request.into_inner().tweets;
+            if tweets.len() < self.fail_chunks_smaller_than {
+                return Err(Status::unavailable("stub failure"));
+            }
+            Ok(Response::new(vf_pb::EvaluateTweetsResponse {
+                results: tweets
+                    .into_iter()
+                    .map(|tweet| vf_pb::TweetEvaluation {
+                        tweet: Some(tweet),
+                        outcome: Some(if tweet.tweet_id % 100 < 50 {
+                            vf_pb::tweet_evaluation::Outcome::NotEvaluated(vf_pb::NotEvaluated {})
+                        } else {
+                            vf_pb::tweet_evaluation::Outcome::Failed(vf_pb::Failed {})
+                        }),
+                    })
+                    .collect(),
+            }))
+        }
+        async fn filter_tweets(
+            &self,
+            _: Request<vf_pb::VisibilityFilterRequest>,
+        ) -> Result<Response<vf_pb::VisibilityFilterResponse>, Status> {
+            Err(Status::unimplemented("unused"))
+        }
+        async fn get_safety_labels(
+            &self,
+            _: Request<vf_pb::GetSafetyLabelsRequest>,
+        ) -> Result<Response<vf_pb::GetSafetyLabelsResponse>, Status> {
+            Err(Status::unimplemented("unused"))
+        }
+    }
+
+    async fn evaluate_against(
+        stub: EvaluateStub,
+        client_timeout_ms: u64,
+        tweet_count: usize,
+    ) -> Result<Vec<EvaluationResult>> {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let handle = tokio::spawn(async move {
+            Server::builder()
+                .add_service(
+                    VisibilityFilteringServiceServer::new(stub)
+                        .accept_compressed(CompressionEncoding::Zstd),
+                )
+                .serve_with_incoming(TcpListenerStream::new(listener))
+                .await
+                .unwrap();
+        });
+        let channel = tonic::transport::Endpoint::from_shared(format!("http://{addr}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        let client = XaiVfClient::from_channel(channel).with_timeout_ms(client_timeout_ms);
+        let result = tokio::spawn(async move {
+            client
+                .evaluate_tweets(vf_pb::EvaluateTweetsRequest {
+                    safety_level: 8,
+                    tweets: (0..tweet_count)
+                        .map(|id| vf_pb::TweetData {
+                            tweet_id: id as u64,
+                            quote_context: None,
+                        })
+                        .collect(),
+                    ..Default::default()
+                })
+                .await
+        })
+        .await
+        .unwrap();
+        handle.abort();
+        let _ = handle.await;
+        result
+    }
+
+    #[tokio::test]
+    async fn evaluate_tweets_chunks_and_fails_whole_call_on_any_chunk_error_or_deadline() {
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let results = evaluate_against(
+            EvaluateStub {
+                calls: calls.clone(),
+                fail_chunks_smaller_than: 0,
+                hang: false,
+            },
+            1_000,
+            XAI_VF_MAX_BATCH_SIZE + 1,
+        )
+        .await
+        .unwrap();
+        assert_eq!(results.len(), XAI_VF_MAX_BATCH_SIZE + 1);
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 2);
+
+        assert!(evaluate_against(
+            EvaluateStub {
+                calls: calls.clone(),
+                fail_chunks_smaller_than: 2,
+                hang: false,
+            },
+            1_000,
+            XAI_VF_MAX_BATCH_SIZE + 1,
+        )
+        .await
+        .is_err());
+        assert!(evaluate_against(
+            EvaluateStub {
+                calls,
+                fail_chunks_smaller_than: 0,
+                hang: true,
+            },
+            50,
+            XAI_VF_MAX_BATCH_SIZE + 1,
+        )
+        .await
+        .is_err());
+    }
+
+    #[test]
+    fn classify_filter_tweets_error_code_taxonomy() {
+        assert_eq!(
+            classify_filter_tweets_error_code(tonic::Code::DeadlineExceeded),
+            "deadline_exceeded"
+        );
+        assert_eq!(
+            classify_filter_tweets_error_code(tonic::Code::Cancelled),
+            "cancelled"
+        );
+        assert_eq!(
+            classify_filter_tweets_error_code(tonic::Code::Unavailable),
+            "unavailable"
+        );
+        assert_eq!(
+            classify_filter_tweets_error_code(tonic::Code::Internal),
+            "other"
+        );
+        assert_eq!(
+            classify_filter_tweets_error_code(tonic::Code::Unknown),
+            "other"
+        );
+    }
+
+    #[test]
+    fn filter_tweets_client_metrics_aggregates_failed_chunks_only() {
+        let mut metrics = FilterTweetsClientMetrics::default();
+        assert_eq!(metrics, FilterTweetsClientMetrics::default());
+
+        metrics.record_failed_chunk("unavailable", 50);
+        metrics.record_failed_chunk("deadline_exceeded", 1);
+
+        assert_eq!(
+            metrics,
+            FilterTweetsClientMetrics {
+                error_codes: vec!["unavailable", "deadline_exceeded"],
+                failed_ids: 51,
+            }
+        );
+    }
+
+    #[test]
+    fn filter_tweets_client_metrics_success_emits_no_errors() {
+        let metrics = FilterTweetsClientMetrics::default();
+        assert!(metrics.error_codes.is_empty());
+        assert_eq!(metrics.failed_ids, 0);
+    }
+
+    #[derive(Default)]
+    struct RecordingReceiver {
+        counters: std::sync::Mutex<HashMap<String, u64>>,
+    }
+
+    impl RecordingReceiver {
+        fn counter(&self, key: &str) -> u64 {
+            *self.counters.lock().unwrap().get(key).unwrap_or(&0)
+        }
+    }
+
+    impl xai_stats_receiver::StatsReceiverExt for RecordingReceiver {
+        fn incr(&self, name: &str, scopes: &[(&str, &str)], value: u64) {
+            let mut key = name.to_string();
+            for (k, v) in scopes {
+                key.push('|');
+                key.push_str(k);
+                key.push('=');
+                key.push_str(v);
+            }
+            *self.counters.lock().unwrap().entry(key).or_default() += value;
+        }
+        fn observe(
+            &self,
+            _: &str,
+            _: &[(&str, &str)],
+            _: f64,
+            _: xai_stats_receiver::HistogramBuckets,
+        ) {
+        }
+        fn observe_expo(&self, _: &str, _: &[(&str, &str)], _: f64) {}
+        fn observe_vm(&self, _: &str, _: &[(&str, &str)], _: f64) {}
+        fn gauge(&self, _: &str, _: &[(&str, &str)], _: f64) {}
+    }
+
+    fn request_guard_with(receiver: Arc<RecordingReceiver>) -> FilterTweetsRequestMetricsGuard {
+        FilterTweetsRequestMetricsGuard {
+            receiver: Some(receiver),
+            status: FilterTweetsRequestStatus::Cancelled,
+        }
+    }
+
+    #[test]
+    fn request_guard_counts_completed_or_degraded_by_failed_chunks() {
+        let sr = Arc::new(RecordingReceiver::default());
+        {
+            let mut guard = request_guard_with(sr.clone());
+            guard.mark_completed(&FilterTweetsClientMetrics::default());
+        }
+        {
+            let mut metrics = FilterTweetsClientMetrics::default();
+            metrics.record_failed_chunk("unavailable", 50);
+            let mut guard = request_guard_with(sr.clone());
+            guard.mark_completed(&metrics);
+        }
+        assert_eq!(sr.counter("vf_client_filter_tweets|requests=completed"), 1);
+        assert_eq!(sr.counter("vf_client_filter_tweets|requests=degraded"), 1);
+        assert_eq!(sr.counter("vf_client_filter_tweets|requests=cancelled"), 0);
+    }
+
+    #[tokio::test]
+    async fn request_guard_counts_cancelled_when_future_dropped_mid_flight() {
+        let sr = Arc::new(RecordingReceiver::default());
+        let mut fut = Box::pin(async {
+            let mut guard = request_guard_with(sr.clone());
+            std::future::pending::<()>().await;
+            guard.mark_completed(&FilterTweetsClientMetrics::default());
+        });
+        assert!(futures::poll!(fut.as_mut()).is_pending());
+        drop(fut);
+        assert_eq!(sr.counter("vf_client_filter_tweets|requests=cancelled"), 1);
+        assert_eq!(sr.counter("vf_client_filter_tweets|requests=completed"), 0);
+        assert_eq!(sr.counter("vf_client_filter_tweets|requests=degraded"), 0);
+    }
+
+    #[test]
+    fn safety_level_maps_to_proto() {
+        assert_eq!(
+            to_proto_safety_level(SafetyLevel::TimelineHome),
+            vf_pb::SafetyLevel::TimelineHome
+        );
+        assert_eq!(
+            to_proto_safety_level(SafetyLevel::TimelineHomeRecommendations),
+            vf_pb::SafetyLevel::TimelineHomeRecommendations
+        );
+        assert_eq!(
+            to_proto_safety_level(SafetyLevel::ExploreNsfwRecommendations),
+            vf_pb::SafetyLevel::ImmersiveExpandedRecommendations
+        );
+        assert_eq!(
+            to_proto_safety_level(SafetyLevel::ImmersiveExpandedRecommendations),
+            vf_pb::SafetyLevel::ImmersiveExpandedRecommendations
+        );
+        assert_eq!(
+            to_proto_safety_level(SafetyLevel::FilterNone),
+            vf_pb::SafetyLevel::FilterAll
+        );
+    }
+
+    #[test]
+    fn results_to_map_converts_actions_and_fails_closed() {
+        let results = vec![
+            vf_pb::TweetVisibilityResult {
+                tweet_id: 1,
+                action: Some(vf_pb::Action {
+                    kind: Some(vf_pb::action::Kind::Allow(true)),
+                }),
+                filtered_reason: None,
+                safety_labels: None,
+            },
+            vf_pb::TweetVisibilityResult {
+                tweet_id: 2,
+                action: Some(vf_pb::Action {
+                    kind: Some(vf_pb::action::Kind::Drop(vf_pb::DropReason {})),
+                }),
+                filtered_reason: Some(vf_pb::FilteredReason {
+                    reason: Some(vf_pb::filtered_reason::Reason::AuthorIsUnsafe(true)),
+                }),
+                safety_labels: None,
+            },
+            vf_pb::TweetVisibilityResult {
+                tweet_id: 3,
+                action: None,
+                filtered_reason: Some(vf_pb::FilteredReason {
+                    reason: Some(vf_pb::filtered_reason::Reason::SafetyResult(
+                        vf_pb::SafetyResult {
+                            action: Some(vf_pb::Action {
+                                kind: Some(vf_pb::action::Kind::Drop(vf_pb::DropReason {})),
+                            }),
+                        },
+                    )),
+                }),
+                safety_labels: None,
+            },
+            vf_pb::TweetVisibilityResult {
+                tweet_id: 7,
+                action: Some(vf_pb::Action {
+                    kind: Some(vf_pb::action::Kind::Interstitial(true)),
+                }),
+                filtered_reason: Some(vf_pb::FilteredReason {
+                    reason: Some(vf_pb::filtered_reason::Reason::ContainNsfwMedia(true)),
+                }),
+                safety_labels: None,
+            },
+        ];
+
+        let map = results_to_map(&[1, 2, 3, 4, 7], results);
+
+        assert!(matches!(
+            map.get(&1),
+            Some(Ok(TweetVisibility {
+                action: Action::Allow,
+                reason: None,
+                ..
+            }))
+        ));
+        assert!(matches!(
+            map.get(&2),
+            Some(Ok(TweetVisibility {
+                action: Action::Drop(_),
+                reason: Some(FilteredReason::AuthorIsUnsafe),
+                ..
+            }))
+        ));
+        match map.get(&3) {
+            Some(Ok(TweetVisibility {
+                action: Action::NotEvaluated,
+                reason: Some(FilteredReason::SafetyResult(sr)),
+                ..
+            })) => {
+                assert!(matches!(sr.action, Action::Drop(_)));
+            }
+            other => panic!("unexpected mapping for id 3: {other:?}"),
+        }
+        assert!(
+            matches!(
+                map.get(&4),
+                Some(Ok(TweetVisibility {
+                    action: Action::NotEvaluated,
+                    reason: Some(FilteredReason::UnspecifiedReason),
+                    ..
+                }))
+            ),
+            "missing response ids surface no verdict"
+        );
+        assert!(matches!(
+            map.get(&7),
+            Some(Ok(TweetVisibility {
+                action: Action::Interstitial,
+                reason: Some(FilteredReason::ContainNsfwMedia),
+                ..
+            }))
+        ));
+    }
+
+    #[test]
+    fn strato_absent_and_bare_reasons_keep_their_policy() {
+        assert_eq!(action_from_strato_reason(&None), Action::Allow);
+        assert_eq!(
+            action_from_strato_reason(&Some(FilteredReason::AuthorBlockViewer)),
+            Action::Drop(DropReason {})
+        );
+    }
+
+    #[test]
+    fn response_projection_preserves_rust_reason_shape() {
+        for (action, reason, expected) in [
+            (Action::Allow, Some(FilteredReason::ContainNsfwMedia), None),
+            (
+                Action::Interstitial,
+                Some(FilteredReason::ContainNsfwMedia),
+                Some(FilteredReason::SafetyResult(SafetyResult {
+                    reason: None,
+                    action: Action::Interstitial,
+                })),
+            ),
+            (
+                Action::Drop(DropReason {}),
+                Some(FilteredReason::AuthorIsUnsafe),
+                Some(FilteredReason::AuthorIsUnsafe),
+            ),
+            (
+                Action::NotEvaluated,
+                None,
+                Some(FilteredReason::UnspecifiedReason),
+            ),
+        ] {
+            let visibility = TweetVisibility {
+                action,
+                reason,
+                safety_labels: Err(SafetyLabelFailure::LookupFailed),
+            };
+            assert_eq!(visibility.to_visibility_reason(), expected);
+        }
+    }
+
+    #[test]
+    fn results_to_map_converts_labels_and_fails_closed() {
+        use xai_x_thrift::tweet_safety_label::SafetyLabelType;
+
+        let results = vec![
+            vf_pb::TweetVisibilityResult {
+                tweet_id: 1,
+                action: Some(vf_pb::Action {
+                    kind: Some(vf_pb::action::Kind::Allow(true)),
+                }),
+                filtered_reason: None,
+                safety_labels: Some(vf_pb::SafetyLabelMap {
+                    labels: HashMap::from([(
+                        i32::from(SafetyLabelType::NSFW_HIGH_PRECISION),
+                        vf_pb::SafetyLabel {
+                            source: Some("some rule".to_string()),
+                            ..Default::default()
+                        },
+                    )]),
+                }),
+            },
+            vf_pb::TweetVisibilityResult {
+                tweet_id: 2,
+                action: Some(vf_pb::Action {
+                    kind: Some(vf_pb::action::Kind::Allow(true)),
+                }),
+                filtered_reason: None,
+                safety_labels: None,
+            },
+        ];
+
+        let map = results_to_map(&[1, 2, 3], results);
+
+        match map.get(&1) {
+            Some(Ok(r)) => {
+                assert_eq!(r.reason, None);
+                let labels = r.safety_labels.as_ref().expect("labels present");
+                let label = labels
+                    .get(&SafetyLabelType::NSFW_HIGH_PRECISION)
+                    .expect("label converted");
+                assert_eq!(label.source.as_deref(), Some("some rule"));
+            }
+            other => panic!("unexpected mapping for id 1: {other:?}"),
+        }
+        match map.get(&2) {
+            Some(Ok(r)) => {
+                assert_eq!(r.reason, None);
+                assert!(r.safety_labels.is_err(), "absent map stays unavailable");
+            }
+            other => panic!("unexpected mapping for id 2: {other:?}"),
+        }
+        match map.get(&3) {
+            Some(Ok(r)) => {
+                assert_eq!(r.reason, Some(FilteredReason::UnspecifiedReason));
+                assert!(r.safety_labels.is_err(), "missing ids fail closed");
+            }
+            other => panic!("unexpected mapping for id 3: {other:?}"),
+        }
+    }
+
+    #[derive(Clone, Default)]
+    struct StubVfService {
+        requests: Arc<Mutex<Vec<vf_pb::VisibilityFilterRequest>>>,
+    }
+
+    #[tonic::async_trait]
+    impl VisibilityFilteringService for StubVfService {
+        async fn evaluate_tweets(
+            &self,
+            _: Request<vf_pb::EvaluateTweetsRequest>,
+        ) -> Result<Response<vf_pb::EvaluateTweetsResponse>, Status> {
+            Err(Status::unimplemented("unused"))
+        }
+
+        async fn filter_tweets(
+            &self,
+            request: Request<vf_pb::VisibilityFilterRequest>,
+        ) -> Result<Response<vf_pb::VisibilityFilterResponse>, Status> {
+            let req = request.into_inner();
+            self.requests.lock().await.push(req.clone());
+            let results = req
+                .tweets
+                .iter()
+                .enumerate()
+                .map(|(index, t)| vf_pb::TweetVisibilityResult {
+                    tweet_id: t.tweet_id,
+                    action: Some(vf_pb::Action {
+                        kind: Some(vf_pb::action::Kind::Drop(vf_pb::DropReason {})),
+                    }),
+                    filtered_reason: Some(
+                        if index == 0 {
+                            FilteredReason::AuthorBlockViewer
+                        } else {
+                            FilteredReason::ViewerBlocksAuthor
+                        }
+                        .into(),
+                    ),
+                    safety_labels: None,
+                })
+                .collect();
+            Ok(Response::new(vf_pb::VisibilityFilterResponse { results }))
+        }
+
+        async fn get_safety_labels(
+            &self,
+            _request: Request<vf_pb::GetSafetyLabelsRequest>,
+        ) -> Result<Response<vf_pb::GetSafetyLabelsResponse>, Status> {
+            unimplemented!()
+        }
+    }
+
+    async fn start_stub_server() -> (
+        SocketAddr,
+        tokio::task::JoinHandle<()>,
+        Arc<Mutex<Vec<vf_pb::VisibilityFilterRequest>>>,
+    ) {
+        let service = StubVfService::default();
+        let requests = service.requests.clone();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let incoming = TcpListenerStream::new(listener);
+        let handle = tokio::spawn(async move {
+            Server::builder()
+                .add_service(
+                    VisibilityFilteringServiceServer::new(service)
+                        .accept_compressed(CompressionEncoding::Zstd)
+                        .send_compressed(CompressionEncoding::Zstd),
+                )
+                .serve_with_incoming(incoming)
+                .await
+                .unwrap();
+        });
+        (addr, handle, requests)
+    }
+
+    #[tokio::test]
+    async fn get_result_keeps_block_directions_distinct() {
+        let (addr, handle, _requests) = start_stub_server().await;
+        let channel = tonic::transport::Endpoint::from_shared(format!("http://{addr}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        let client = XaiVfClient::from_channel(channel);
+
+        let result = client
+            .get_result(vec![10, 20], SafetyLevel::TimelineHome, 99, None)
+            .await;
+
+        assert_eq!(result.len(), 2);
+        assert!(matches!(
+            result.get(&10),
+            Some(Ok(TweetVisibility {
+                action: Action::Drop(_),
+                reason: Some(FilteredReason::AuthorBlockViewer),
+                ..
+            }))
+        ));
+        assert!(matches!(
+            result.get(&20),
+            Some(Ok(TweetVisibility {
+                action: Action::Drop(_),
+                reason: Some(FilteredReason::ViewerBlocksAuthor),
+                ..
+            }))
+        ));
+        handle.abort();
+    }
+
+    #[tokio::test]
+    async fn get_result_forwards_country_code() {
+        let (addr, handle, requests) = start_stub_server().await;
+        let channel = tonic::transport::Endpoint::from_shared(format!("http://{addr}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        let client = XaiVfClient::from_channel(channel);
+
+        let with_country = TwitterContextViewer {
+            request_country_code: "DE".to_string(),
+            ..Default::default()
+        };
+        client
+            .get_result(vec![10], SafetyLevel::TimelineHome, 99, Some(with_country))
+            .await;
+
+        let empty_country = TwitterContextViewer {
+            request_country_code: String::new(),
+            ..Default::default()
+        };
+        client
+            .get_result(vec![11], SafetyLevel::TimelineHome, 99, Some(empty_country))
+            .await;
+
+        client
+            .get_result(vec![12], SafetyLevel::TimelineHome, 99, None)
+            .await;
+
+        let captured = requests.lock().await;
+        assert_eq!(captured.len(), 3);
+        assert_eq!(captured[0].country_code.as_deref(), Some("DE"));
+        assert_eq!(captured[1].country_code, None);
+        assert_eq!(captured[2].country_code, None);
+        handle.abort();
+    }
+
+    #[tokio::test]
+    async fn get_result_empty_input_skips_call() {
+        let channel = tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy();
+        let client = XaiVfClient::from_channel(channel);
+        let result = client
+            .get_result(vec![], SafetyLevel::TimelineHome, 1, None)
+            .await;
+        assert!(result.is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_result_chunks_large_batches() {
+        let (addr, handle, requests) = start_stub_server().await;
+        let channel = tonic::transport::Endpoint::from_shared(format!("http://{addr}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        let client = XaiVfClient::from_channel(channel);
+
+        let tweet_ids: Vec<u64> = (1..=(XAI_VF_MAX_BATCH_SIZE as u64 + 1)).collect();
+        let result = client
+            .get_result(tweet_ids.clone(), SafetyLevel::TimelineHome, 99, None)
+            .await;
+
+        assert_eq!(result.len(), tweet_ids.len());
+        let captured = requests.lock().await;
+        assert_eq!(captured.len(), 2);
+        assert_eq!(captured[0].tweets.len(), XAI_VF_MAX_BATCH_SIZE);
+        assert_eq!(captured[1].tweets.len(), 1);
+        handle.abort();
+    }
+
+    #[tokio::test]
+    async fn get_result_partial_success_fills_missing_ids() {
+        #[derive(Clone, Default)]
+        struct PartialVfService;
+
+        #[tonic::async_trait]
+        impl VisibilityFilteringService for PartialVfService {
+            async fn evaluate_tweets(
+                &self,
+                _: Request<vf_pb::EvaluateTweetsRequest>,
+            ) -> Result<Response<vf_pb::EvaluateTweetsResponse>, Status> {
+                Err(Status::unimplemented("unused"))
+            }
+
+            async fn filter_tweets(
+                &self,
+                request: Request<vf_pb::VisibilityFilterRequest>,
+            ) -> Result<Response<vf_pb::VisibilityFilterResponse>, Status> {
+                let req = request.into_inner();
+                let first = req.tweets.first().map(|t| t.tweet_id).unwrap_or(0);
+                Ok(Response::new(vf_pb::VisibilityFilterResponse {
+                    results: vec![vf_pb::TweetVisibilityResult {
+                        tweet_id: first,
+                        action: Some(vf_pb::Action {
+                            kind: Some(vf_pb::action::Kind::Drop(vf_pb::DropReason {})),
+                        }),
+                        filtered_reason: Some(vf_pb::FilteredReason {
+                            reason: Some(vf_pb::filtered_reason::Reason::AuthorIsUnsafe(true)),
+                        }),
+                        safety_labels: None,
+                    }],
+                }))
+            }
+
+            async fn get_safety_labels(
+                &self,
+                _request: Request<vf_pb::GetSafetyLabelsRequest>,
+            ) -> Result<Response<vf_pb::GetSafetyLabelsResponse>, Status> {
+                unimplemented!()
+            }
+        }
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let incoming = TcpListenerStream::new(listener);
+        let handle = tokio::spawn(async move {
+            Server::builder()
+                .add_service(
+                    VisibilityFilteringServiceServer::new(PartialVfService)
+                        .accept_compressed(CompressionEncoding::Zstd)
+                        .send_compressed(CompressionEncoding::Zstd),
+                )
+                .serve_with_incoming(incoming)
+                .await
+                .unwrap();
+        });
+        let channel = tonic::transport::Endpoint::from_shared(format!("http://{addr}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        let client = XaiVfClient::from_channel(channel);
+
+        let result = client
+            .get_result(vec![10, 20], SafetyLevel::TimelineHome, 99, None)
+            .await;
+
+        assert_eq!(result.len(), 2);
+        assert!(matches!(
+            result.get(&10),
+            Some(Ok(TweetVisibility {
+                reason: Some(FilteredReason::AuthorIsUnsafe),
+                ..
+            }))
+        ));
+        assert!(matches!(
+            result.get(&20),
+            Some(Ok(TweetVisibility {
+                reason: Some(FilteredReason::UnspecifiedReason),
+                ..
+            }))
+        ));
+        handle.abort();
+    }
+
+    #[tokio::test]
+    async fn get_result_multi_chunk_partial_rpc_failure() {
+        #[derive(Clone, Default)]
+        struct FailSecondChunkService;
+
+        #[tonic::async_trait]
+        impl VisibilityFilteringService for FailSecondChunkService {
+            async fn evaluate_tweets(
+                &self,
+                _: Request<vf_pb::EvaluateTweetsRequest>,
+            ) -> Result<Response<vf_pb::EvaluateTweetsResponse>, Status> {
+                Err(Status::unimplemented("unused"))
+            }
+
+            async fn filter_tweets(
+                &self,
+                request: Request<vf_pb::VisibilityFilterRequest>,
+            ) -> Result<Response<vf_pb::VisibilityFilterResponse>, Status> {
+                let req = request.into_inner();
+                if req
+                    .tweets
+                    .iter()
+                    .any(|t| t.tweet_id > XAI_VF_MAX_BATCH_SIZE as u64)
+                {
+                    return Err(Status::unavailable("simulated chunk failure"));
+                }
+                let results = req
+                    .tweets
+                    .iter()
+                    .map(|t| vf_pb::TweetVisibilityResult {
+                        tweet_id: t.tweet_id,
+                        action: Some(vf_pb::Action {
+                            kind: Some(vf_pb::action::Kind::Allow(true)),
+                        }),
+                        filtered_reason: None,
+                        safety_labels: None,
+                    })
+                    .collect();
+                Ok(Response::new(vf_pb::VisibilityFilterResponse { results }))
+            }
+
+            async fn get_safety_labels(
+                &self,
+                _request: Request<vf_pb::GetSafetyLabelsRequest>,
+            ) -> Result<Response<vf_pb::GetSafetyLabelsResponse>, Status> {
+                unimplemented!()
+            }
+        }
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let incoming = TcpListenerStream::new(listener);
+        let handle = tokio::spawn(async move {
+            Server::builder()
+                .add_service(
+                    VisibilityFilteringServiceServer::new(FailSecondChunkService)
+                        .accept_compressed(CompressionEncoding::Zstd)
+                        .send_compressed(CompressionEncoding::Zstd),
+                )
+                .serve_with_incoming(incoming)
+                .await
+                .unwrap();
+        });
+        let channel = tonic::transport::Endpoint::from_shared(format!("http://{addr}"))
+            .unwrap()
+            .connect()
+            .await
+            .unwrap();
+        let client = XaiVfClient::from_channel(channel);
+
+        let tweet_ids: Vec<u64> = (1..=(XAI_VF_MAX_BATCH_SIZE as u64 + 1)).collect();
+        let result = client
+            .get_result(tweet_ids.clone(), SafetyLevel::TimelineHome, 99, None)
+            .await;
+
+        assert_eq!(result.len(), tweet_ids.len());
+        for id in 1..=XAI_VF_MAX_BATCH_SIZE as u64 {
+            assert!(
+                matches!(
+                    result.get(&id),
+                    Some(Ok(TweetVisibility { reason: None, .. }))
+                ),
+                "chunk-1 id {id} should Allow"
+            );
+        }
+        let failed_id = XAI_VF_MAX_BATCH_SIZE as u64 + 1;
+        assert!(
+            matches!(result.get(&failed_id), Some(Err(_))),
+            "failed chunk id should be Err"
+        );
+
+        let mut metrics = FilterTweetsClientMetrics::default();
+        metrics.record_failed_chunk(
+            classify_filter_tweets_error_code(tonic::Code::Unavailable),
+            1,
+        );
+        assert_eq!(metrics.error_codes, vec!["unavailable"]);
+        assert_eq!(metrics.failed_ids, 1);
+
+        handle.abort();
+    }
+}

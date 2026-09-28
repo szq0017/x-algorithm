@@ -1,13 +1,13 @@
-use crate::clients::kafka_publisher_client::{
-    CLIENT_EVENT_TOPIC, KafkaCluster, KafkaPublisherClient, ProdKafkaPublisherClient,
-};
-use crate::models::query::ScoredPostsQuery;
+use crate::models::query::{RequestType, ScoredPostsQuery};
 use crate::params::EnableUrtMigrationComponents;
 use crate::util::tweet_type_metrics::{TWEET_TYPE_PREDICATES, VIDEO, bitset_get};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tonic::async_trait;
 
+use xai_candidate_pipeline::component_library::clients::kafka_publisher_client::{
+    CLIENT_EVENT_TOPIC, KafkaCluster, KafkaPublisherClient, ProdKafkaPublisherClient,
+};
 use xai_candidate_pipeline::component_library::utils::client_utils::{
     ClientPlatform, RequestContext,
 };
@@ -61,12 +61,12 @@ impl SideEffect<ScoredPostsQuery, FeedItem> for ClientEventsKafkaSideEffect {
             .iter()
             .filter(|i| matches!(i.item, Some(feed_item::Item::WhoToFollow(_))))
             .count() as i64;
-        let post_count = posts.len() as i64;
+        let post_count = posts.iter().map(|p| conversation_post_count(p)).sum();
 
         let base = ClientEventParams {
             query,
             client_name: ClientPlatform::from_app_id(query.client_app_id).client_name(),
-            section: "home",
+            section: section_for(query.request_type),
             component: None,
             element: None,
             action: "served_tweets",
@@ -98,6 +98,30 @@ impl SideEffect<ScoredPostsQuery, FeedItem> for ClientEventsKafkaSideEffect {
         }
 
         Ok(())
+    }
+}
+
+fn conversation_post_count(post: &ScoredPost) -> i64 {
+    let mut count = 1;
+    if let Some(&root) = post.ancestors.iter().min() {
+        if !post.tombstone_ancestor_ids.contains(&root) {
+            count += 1;
+        }
+        if let Some(&parent) = post.ancestors.iter().max()
+            && parent != root
+            && !post.tombstone_ancestor_ids.contains(&parent)
+        {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn section_for(request_type: RequestType) -> &'static str {
+    match request_type {
+        RequestType::RankedFollowing => "ranked_following",
+        RequestType::Following => "latest",
+        _ => "home",
     }
 }
 
@@ -269,7 +293,6 @@ fn base_build_log_event(
         "home",
         p.section,
         component.as_deref().unwrap_or(""),
-        element.as_deref().unwrap_or(""),
         action,
     ]
     .join(":");
