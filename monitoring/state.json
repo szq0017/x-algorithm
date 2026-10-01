@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "8b25829717a4f104dd04403ee7d0253c5fedb1b7",
-  "last_analyzed_at": "2026-09-19",
+  "last_analyzed_sha": "b79b947ce9283c786822274ef8fe208c33c585b2",
+  "last_analyzed_at": "2026-10-01",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -189,6 +189,13 @@
       "to_sha": "8b25829717a4f104dd04403ee7d0253c5fedb1b7",
       "report": "reports/2026-09-19.md",
       "headline": "41ファイル(+2877/-1828): 代替スコアリング方式dwell-regretとゲートモデルを全面削除(value_model_gate.rs -537行、関連パラメータ18件削除)しFor Youは加重和方式に一本化。Under the Hoodが「法的要請による国別非表示」を利用者に開示(README 9/18更新、9/11レポートの要確認が解消)。コールドスタート投稿専用のretrieval枠を新設(既定0=オフ、dataset_type=13)。可視性フィルタに新エンドポイントevaluate_tweetsとTES複合フェッチを導入。Grok成人向けスパム動画検知がいいね512以上で推論モードに。ランキング重みは24日連続変更なし"
+    },
+    {
+      "date": "2026-10-01",
+      "from_sha": "8b25829717a4f104dd04403ee7d0253c5fedb1b7",
+      "to_sha": "b79b947ce9283c786822274ef8fe208c33c585b2",
+      "report": "reports/2026-10-01.md",
+      "headline": "12日分8コミットが一括到来(288ファイル/+37833): (1)コールドスタート経路が本番稼働 — 取得枠0→200件(MoEも0→200)、ブースト対象のフォロワー上限1,000→50,000人、投稿鮮度48h→2h、表示回数閾値1,000→200、Thompson Sampling off→on、実験アームによるMoE候補のスコアゼロ化を撤去。(2)ランキング重みが5週間ぶりに数値変更3件: ClickWeight 0.4→0.3、ContClickDwellTimeWeight 0.0→0.4(新規有効化)、NotInterestedWeight -43.2→-47.52。(3)ranking_scorer.rs(1160行)を削除し共有クレートxai-value-model/を新設、最終スコア計算が外部サービスvm-rankerへ移管(著者多様性・OON割引・DPPもそちら側、ユーザー単位の重み摂動機構を新設・既定off)。(4)申し立てで覆った措置の再適用を防ぐ新サービスabuse-ledger-service/(既定Off)。(5)返信スパム: 審査対象150k→125k、協調スパム検知50k→125k、信頼アカウント免除が○×→信用スコア60点以上。(6)伸びた動画の代表コマによるヌード再スキャンを新設。(7)広告ロジックは無変更。(8)ブラジル選挙フィルタ+19件(計2791)"
     }
   ]
 }
