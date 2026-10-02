@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "b79b947ce9283c786822274ef8fe208c33c585b2",
-  "last_analyzed_at": "2026-10-01",
+  "last_analyzed_sha": "76843a5eea278ced444b21372d4e6d6909f5c35e",
+  "last_analyzed_at": "2026-10-02",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -196,6 +196,13 @@
       "to_sha": "b79b947ce9283c786822274ef8fe208c33c585b2",
       "report": "reports/2026-10-01.md",
       "headline": "12日分8コミットが一括到来(288ファイル/+37833): (1)コールドスタート経路が本番稼働 — 取得枠0→200件(MoEも0→200)、ブースト対象のフォロワー上限1,000→50,000人、投稿鮮度48h→2h、表示回数閾値1,000→200、Thompson Sampling off→on、実験アームによるMoE候補のスコアゼロ化を撤去。(2)ランキング重みが5週間ぶりに数値変更3件: ClickWeight 0.4→0.3、ContClickDwellTimeWeight 0.0→0.4(新規有効化)、NotInterestedWeight -43.2→-47.52。(3)ranking_scorer.rs(1160行)を削除し共有クレートxai-value-model/を新設、最終スコア計算が外部サービスvm-rankerへ移管(著者多様性・OON割引・DPPもそちら側、ユーザー単位の重み摂動機構を新設・既定off)。(4)申し立てで覆った措置の再適用を防ぐ新サービスabuse-ledger-service/(既定Off)。(5)返信スパム: 審査対象150k→125k、協調スパム検知50k→125k、信頼アカウント免除が○×→信用スコア60点以上。(6)伸びた動画の代表コマによるヌード再スキャンを新設。(7)広告ロジックは無変更。(8)ブラジル選挙フィルタ+19件(計2791)"
+    },
+    {
+      "date": "2026-10-02",
+      "from_sha": "b79b947ce9283c786822274ef8fe208c33c585b2",
+      "to_sha": "76843a5eea278ced444b21372d4e6d6909f5c35e",
+      "report": "reports/2026-10-02.md",
+      "headline": "105ファイル中44ファイルは行末空白除去のみ(実質61ファイル/+5000-529)。ランキング重み・OON係数・著者多様性・Thunder窓・広告・groxはすべて無変更。最大の新設は候補取得の新経路SidSource(SID retrieval、既定オフ、有効化時はMoE経路を排他停止。閲覧者の反応履歴最大50件を種に『意味ID』の共通接頭辞3段階以上で最大800件取得、sid_source.rs/sid_retrieval_client.rs 計358行、param.rs:604-633)。既定オンの実挙動変更2件: (a)コールドスタート・ブーストからMoE/コールド経路由来候補を除外していたis_arm_gated_retrievalを撤廃しControlアームでも対象化(author_cold_start.rs:203-207)、(b)キャッシュ再配信時のエンゲージメント数値再取得を小規模著者の原投稿のみ→全候補に拡大(engagement_counts_hydrator.rs:102-131)。可視性フィルタはIsRetweetの読み出し元をTweet(get_tweets)→PureCoreへ移管しMuteRetweetsエッジ照会をリポストのみに限定(rule_spec.rs:662、plan.rs:200、store.rs:125)。proto: LLM_JUDGE_*_TO_SEARCHが9/17削除から108/109で復活、WEB_CONV_VALUE_USD/RATIO、AdInfoに閲覧者×広告主の履歴2枠、取得要求にseed_post_ids/既読ブルームフィルタ枠。公開ラベル説明にBRAZIL_ELECTION_LEGAL追記(選挙関連AI生成メディア、TSE決議23.610 Art9-B§3-A、ブラジル国内でおすすめ除外)。透明性後退: AuthorRulesEvaluator(156行)を非公開クレートxai_feature_switchesへ移管。残りは学習基盤(GPU行シャーディング埋め込みrow_emb約3200行、Kafka読み出し再分配、KMSクライアント)と計測ラベル"
     }
   ]
 }
