@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "76843a5eea278ced444b21372d4e6d6909f5c35e",
-  "last_analyzed_at": "2026-10-02",
+  "last_analyzed_sha": "b412112d03f27acbfd668e0cc040abcafa1080c1",
+  "last_analyzed_at": "2026-10-03",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -203,6 +203,13 @@
       "to_sha": "76843a5eea278ced444b21372d4e6d6909f5c35e",
       "report": "reports/2026-10-02.md",
       "headline": "105ファイル中44ファイルは行末空白除去のみ(実質61ファイル/+5000-529)。ランキング重み・OON係数・著者多様性・Thunder窓・広告・groxはすべて無変更。最大の新設は候補取得の新経路SidSource(SID retrieval、既定オフ、有効化時はMoE経路を排他停止。閲覧者の反応履歴最大50件を種に『意味ID』の共通接頭辞3段階以上で最大800件取得、sid_source.rs/sid_retrieval_client.rs 計358行、param.rs:604-633)。既定オンの実挙動変更2件: (a)コールドスタート・ブーストからMoE/コールド経路由来候補を除外していたis_arm_gated_retrievalを撤廃しControlアームでも対象化(author_cold_start.rs:203-207)、(b)キャッシュ再配信時のエンゲージメント数値再取得を小規模著者の原投稿のみ→全候補に拡大(engagement_counts_hydrator.rs:102-131)。可視性フィルタはIsRetweetの読み出し元をTweet(get_tweets)→PureCoreへ移管しMuteRetweetsエッジ照会をリポストのみに限定(rule_spec.rs:662、plan.rs:200、store.rs:125)。proto: LLM_JUDGE_*_TO_SEARCHが9/17削除から108/109で復活、WEB_CONV_VALUE_USD/RATIO、AdInfoに閲覧者×広告主の履歴2枠、取得要求にseed_post_ids/既読ブルームフィルタ枠。公開ラベル説明にBRAZIL_ELECTION_LEGAL追記(選挙関連AI生成メディア、TSE決議23.610 Art9-B§3-A、ブラジル国内でおすすめ除外)。透明性後退: AuthorRulesEvaluator(156行)を非公開クレートxai_feature_switchesへ移管。残りは学習基盤(GPU行シャーディング埋め込みrow_emb約3200行、Kafka読み出し再分配、KMSクライアント)と計測ラベル"
+    },
+    {
+      "date": "2026-10-03",
+      "from_sha": "76843a5eea278ced444b21372d4e6d6909f5c35e",
+      "to_sha": "b412112d03f27acbfd668e0cc040abcafa1080c1",
+      "report": "reports/2026-10-03.md",
+      "headline": "大規模な回(148ファイル・実質+8,902/-2,130、空白除去ゼロ): 著者単位のスコア加点機構AuthorExplorationBonus新設(公開既定0.0・値決定は非公開クレート、構造的に最重要)、返信の推薦インデックス化が稼働開始(1fav_reply/32fav_reply・24h窓・自己返信除外、配信フラグEnablePhoenixOonRepliesは既定オフ)、人気著者(フォロワー上位1000)の投稿を全員の候補に注入するPopularPostsSource新設(既定オフ・リストは手動CLI投入)、広告ブランドセーフティv2が3度目の既定ON+著者単位フォールバック新設(既定オフ)、SimClustersのシード年齢90日上限(既定ON)、Grox返信スパム免除の信用スコア60→62、トラステッドフレンズ投稿のホーム除外ルール新設、大型アカウント占有率の計測を大幅追加。ランキング重みと予測ヘッドは変更なし"
     }
   ]
 }
