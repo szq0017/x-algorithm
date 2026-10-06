@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "b412112d03f27acbfd668e0cc040abcafa1080c1",
-  "last_analyzed_at": "2026-10-03",
+  "last_analyzed_sha": "e62790c99484b51424c2eccc488ed4e7517e8778",
+  "last_analyzed_at": "2026-10-06",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -210,6 +210,13 @@
       "to_sha": "b412112d03f27acbfd668e0cc040abcafa1080c1",
       "report": "reports/2026-10-03.md",
       "headline": "大規模な回(148ファイル・実質+8,902/-2,130、空白除去ゼロ): 著者単位のスコア加点機構AuthorExplorationBonus新設(公開既定0.0・値決定は非公開クレート、構造的に最重要)、返信の推薦インデックス化が稼働開始(1fav_reply/32fav_reply・24h窓・自己返信除外、配信フラグEnablePhoenixOonRepliesは既定オフ)、人気著者(フォロワー上位1000)の投稿を全員の候補に注入するPopularPostsSource新設(既定オフ・リストは手動CLI投入)、広告ブランドセーフティv2が3度目の既定ON+著者単位フォールバック新設(既定オフ)、SimClustersのシード年齢90日上限(既定ON)、Grox返信スパム免除の信用スコア60→62、トラステッドフレンズ投稿のホーム除外ルール新設、大型アカウント占有率の計測を大幅追加。ランキング重みと予測ヘッドは変更なし"
+    },
+    {
+      "date": "2026-10-06",
+      "from_sha": "b412112d03f27acbfd668e0cc040abcafa1080c1",
+      "to_sha": "e62790c99484b51424c2eccc488ed4e7517e8778",
+      "report": "reports/2026-10-06.md",
+      "headline": "大型アップデート(103ファイル, +6916/-1393): 可視性判定に第4の種別「NOTICE(注意書き付き表示)」を新設しFOSNRレベル1(暴言・侮辱)投稿をフォロワーに警告付き表示(既定ON・自動再生停止)、予測ヘッド25→28(active_secs廃止/動画継続視聴秒数・プロフィール滞在秒数を新設、既定重み0.0)、人気投稿経路を手動CSV→BigQuery自動+閲覧数の時間減衰品質スコアに全面再設計(既定オフ)、コミュニティの非表示化・著者除名がホームに反映(既定ON)、推薦理由開示機能Under the Hood新設(既定オフ)。ランキング重み(ScoringWeights)の数値変更はなし"
     }
   ]
 }
