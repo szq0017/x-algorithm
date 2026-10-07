@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "e62790c99484b51424c2eccc488ed4e7517e8778",
-  "last_analyzed_at": "2026-10-06",
+  "last_analyzed_sha": "78460ca8b65c57ddd3a05f9217c8aaeba214b628",
+  "last_analyzed_at": "2026-10-07",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -217,6 +217,13 @@
       "to_sha": "e62790c99484b51424c2eccc488ed4e7517e8778",
       "report": "reports/2026-10-06.md",
       "headline": "大型アップデート(103ファイル, +6916/-1393): 可視性判定に第4の種別「NOTICE(注意書き付き表示)」を新設しFOSNRレベル1(暴言・侮辱)投稿をフォロワーに警告付き表示(既定ON・自動再生停止)、予測ヘッド25→28(active_secs廃止/動画継続視聴秒数・プロフィール滞在秒数を新設、既定重み0.0)、人気投稿経路を手動CSV→BigQuery自動+閲覧数の時間減衰品質スコアに全面再設計(既定オフ)、コミュニティの非表示化・著者除名がホームに反映(既定ON)、推薦理由開示機能Under the Hood新設(既定オフ)。ランキング重み(ScoringWeights)の数値変更はなし"
+    },
+    {
+      "date": "2026-10-07",
+      "from_sha": "e62790c99484b51424c2eccc488ed4e7517e8778",
+      "to_sha": "78460ca8b65c57ddd3a05f9217c8aaeba214b628",
+      "report": "reports/2026-10-07.md",
+      "headline": "小規模(22ファイル)だが既定値変更2件が本日から稼働: (1)『人気投稿』経路 EnablePopularPostsSource が false→true ＝ 全ユーザー共通の人気投稿リスト最大500件がFor Youのフォロー外候補に追加(フォロワー数上位0.005%の原投稿・勢いスコア半減期8時間)、(2)未探索ボーナス PostUnexploredWeight 0.02→0.015(-25%、フォロー中限定)。いずれも『勢いのある投稿を優遇』方向。加えて可視性フィルタの上書き規則を厳格化(投稿ストアがFoundのときだけVF判定が勝つ＝保護アカウントのFiltered理由を保持・安全側)。検索学習データの語一致リーク修正は既定オフ。ranking_scorer.rs/ads/grox/thunderは未変更"
     }
   ]
 }
