@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "78460ca8b65c57ddd3a05f9217c8aaeba214b628",
-  "last_analyzed_at": "2026-10-07",
+  "last_analyzed_sha": "35650fb89f3b14dc6234312535f642779d891d88",
+  "last_analyzed_at": "2026-10-08",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -224,6 +224,13 @@
       "to_sha": "78460ca8b65c57ddd3a05f9217c8aaeba214b628",
       "report": "reports/2026-10-07.md",
       "headline": "小規模(22ファイル)だが既定値変更2件が本日から稼働: (1)『人気投稿』経路 EnablePopularPostsSource が false→true ＝ 全ユーザー共通の人気投稿リスト最大500件がFor Youのフォロー外候補に追加(フォロワー数上位0.005%の原投稿・勢いスコア半減期8時間)、(2)未探索ボーナス PostUnexploredWeight 0.02→0.015(-25%、フォロー中限定)。いずれも『勢いのある投稿を優遇』方向。加えて可視性フィルタの上書き規則を厳格化(投稿ストアがFoundのときだけVF判定が勝つ＝保護アカウントのFiltered理由を保持・安全側)。検索学習データの語一致リーク修正は既定オフ。ranking_scorer.rs/ads/grox/thunderは未変更"
+    },
+    {
+      "date": "2026-10-08",
+      "from_sha": "78460ca8b65c57ddd3a05f9217c8aaeba214b628",
+      "to_sha": "35650fb89f3b14dc6234312535f642779d891d88",
+      "report": "reports/2026-10-08.md",
+      "headline": "大規模(173ファイル・+15,160/-2,465)。既定ONの行動変更3件: (1)FOSNRラベル付き投稿の著者本人に異議申立て通知＋自分の投稿への操作制限を新設(レベル3=いいね/返信/リポスト/引用/共有/ブックマーク/固定/リンクコピー/DM/編集/ハイライト/埋め込み/リスト の13操作、レベル1=編集のみ。従来は著者にはallow)、(2)『ローカル投稿』(narrowcast_place_id)の地域外閲覧者はリポスト・返信を制限(著者/招待者/ログアウトは免除、位置情報が取れない閲覧者も地域外扱い、ルックアップ失敗はfail-open)、(3)コミュニティ除名者は返信・プロフィール固定を制限(iOS/Android 10.16.0+、リポスト経由にも伝播)。学習側: ホーム本番configの滞在時間予測をTweedie/MAE(各0.1→0.0)からCREAD(30段階しきい値分類＋Huber復元、重み0.1)に全面切替＋没入面専用240秒ヘッド新設、履歴の滞在時間も240秒上限の区分線形埋め込み化＋通報/興味なし/ブロック/ミュート専用行を新設。既定オフの大型機能: 縦型動画カルーセル(3〜5本・For You 6番目・疲労60分・video_open_score降順・Top-50圏外から別枠30件・返信と横型/正方形は除外、FEED_MODULE_SLOTS 4→5)。Grox: 高可視性返信のスパム免除スコア62→66(厳格化、60→62に続く引き締め)、組織的スパム検出のフォロワー下限12.5万→18万(対象縮小＝12.5〜18万帯のリプ欄が検出外)。他: 広告ドロップ理由のログ化(挙動等価)、phoenix-rankallにRust特徴量ハイドレート基盤新設(ブックマーク数・閲覧数・NSFW著者フラグを収集)、二塔検索にMixture-of-Logits追加(既定オフ)、stale post 30日オプション(既定オフ・現行14日)、トピック指定時は著者コールドスタート加点を無効化、国コードをreq指定からリクエスト元に変更。ScoringWeightsと予測ヘッド数は未変更"
     }
   ]
 }
