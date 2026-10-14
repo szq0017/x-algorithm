@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "cb45b5501423126adfc508052116c2d67c0e3fec",
-  "last_analyzed_at": "2026-10-09",
+  "last_analyzed_sha": "17c96bf346df3d62b90f1bb01830d432dba74485",
+  "last_analyzed_at": "2026-10-14",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -238,6 +238,13 @@
       "to_sha": "cb45b5501423126adfc508052116c2d67c0e3fec",
       "report": "reports/2026-10-09.md",
       "headline": "小規模(16ファイル)・ほぼ学習基盤のみ。ランキング重み/フィルタ/広告/grox閾値の変更ゼロ(param.rsは同期日時コメントのみ)。実質の新情報は準備段階2件: 予測リクエストにフィードの要求契機(launch/pull-to-refresh/polling等15種)とカーソル方向(5種)を追加(home-mixer未設定・モデル未使用)、Grokの投稿データにmentioned_users追加(LM未渡し)。残りはH100学習の高速化: 候補専用packing領域+専用attentionカーネル新設(候補間の相互参照なし=listwise化はしていないことを確認)、学習時のみ候補を後方から間引く予算処理、bs_per_device 256->512(マイクロバッチ2)・ep 256->128・学習率7.1e-4据え置き"
+    },
+    {
+      "date": "2026-10-14",
+      "from_sha": "cb45b5501423126adfc508052116c2d67c0e3fec",
+      "to_sha": "17c96bf346df3d62b90f1bb01830d432dba74485",
+      "report": "reports/2026-10-14.md",
+      "headline": "大規模(193ファイル・+33,292/-11,950)。9月以降で最も実影響大。既定ONの行動変更5件: (1)ランキング重み4件変更=いいね0.5→0.66(+32%)・動画オープン0.07→0.02(-71%)・連続滞在時間0.004→0.006(+50%)・興味なし-47.52→-52.272、新ヘッド『動画で反応』は重み0.0、(2)ブラジル2026選挙フィルタが2,800→28アカウント(10/25決選投票候補のみ、TSE公文書に基づく)=約2,772アカウントがフォロー外For Youへの露出を回復、(3)記事(Article)の本文メディア/カバー画像を『メディアあり』に算入=記事にもNSFWゲーティング(ログアウト/未成年/年齢未申告はドロップ、非オプトインはぼかし)が適用、(4)会話ルート著者のブロック判定を3経路に拡張=深い階層の返信でもRootAuthorBlockedViewerの操作制限が発動、(5)動画除外モードで引用先が動画の投稿・祖先に動画がある返信も除外。加えてAESに執行アクション管制面を新設(凍結/本人確認/スパムラベル7日30日永久/著者凍結を信頼度バンド0.70-0.85-0.95・証拠30日・ドライラン・オフスイッチ・ロールバック付きで割当、旧ハードコード既定CSE近似重複→凍結は撤去し設定駆動化)、広告にビュースルーCV18種+閲覧契機/カーソル方向、Phoenixにページ単位RL(スレート生成デコーダ+クリティック、最大64枠、探索リターン重み9.0)と返信ランカーtwo-tower v2を新設(いずれも学習のみ・本番未接続)、いいね0件投稿専用retrieval種別ZeroFavの計測開始"
     }
   ]
 }
