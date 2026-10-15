@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "17c96bf346df3d62b90f1bb01830d432dba74485",
-  "last_analyzed_at": "2026-10-14",
+  "last_analyzed_sha": "92f0918f6cb52837cb53a8c790c68f906b2c0db1",
+  "last_analyzed_at": "2026-10-15",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -245,6 +245,13 @@
       "to_sha": "17c96bf346df3d62b90f1bb01830d432dba74485",
       "report": "reports/2026-10-14.md",
       "headline": "大規模(193ファイル・+33,292/-11,950)。9月以降で最も実影響大。既定ONの行動変更5件: (1)ランキング重み4件変更=いいね0.5→0.66(+32%)・動画オープン0.07→0.02(-71%)・連続滞在時間0.004→0.006(+50%)・興味なし-47.52→-52.272、新ヘッド『動画で反応』は重み0.0、(2)ブラジル2026選挙フィルタが2,800→28アカウント(10/25決選投票候補のみ、TSE公文書に基づく)=約2,772アカウントがフォロー外For Youへの露出を回復、(3)記事(Article)の本文メディア/カバー画像を『メディアあり』に算入=記事にもNSFWゲーティング(ログアウト/未成年/年齢未申告はドロップ、非オプトインはぼかし)が適用、(4)会話ルート著者のブロック判定を3経路に拡張=深い階層の返信でもRootAuthorBlockedViewerの操作制限が発動、(5)動画除外モードで引用先が動画の投稿・祖先に動画がある返信も除外。加えてAESに執行アクション管制面を新設(凍結/本人確認/スパムラベル7日30日永久/著者凍結を信頼度バンド0.70-0.85-0.95・証拠30日・ドライラン・オフスイッチ・ロールバック付きで割当、旧ハードコード既定CSE近似重複→凍結は撤去し設定駆動化)、広告にビュースルーCV18種+閲覧契機/カーソル方向、Phoenixにページ単位RL(スレート生成デコーダ+クリティック、最大64枠、探索リターン重み9.0)と返信ランカーtwo-tower v2を新設(いずれも学習のみ・本番未接続)、いいね0件投稿専用retrieval種別ZeroFavの計測開始"
+    },
+    {
+      "date": "2026-10-15",
+      "from_sha": "17c96bf346df3d62b90f1bb01830d432dba74485",
+      "to_sha": "92f0918f6cb52837cb53a8c790c68f906b2c0db1",
+      "report": "reports/2026-10-15.md",
+      "headline": "ランキング重みの変更なし(57ファイル)。既定で効く変更2件: 広告ブランドセーフティの著者フォールバックON(投稿単位ラベルが無い投稿にアカウント単位のGrok判定を適用、SFA著者の投稿がMediumRisk→Safeに格上げされ広告隣接可能に=広告枠増、格下げは無し)、閲覧者照会が全アカウント状態を含むよう修正(凍結/停止/削除/soft userの閲覧者に実プロフィールが適用されセンシティブ表示の範囲が変化)。仕込みのみ: 縦型動画カルーセル向けイマーシブ専用スコアラー新設(別クラスタExperiment3Fou + IMMERSIVE_LONG_DWELL系列、重み既定0.0でカルーセル自体もOFF)。表示制御ルールDSLは全面刷新だが判定は検証の限り完全不変(レベル割当238組・投稿ルール103件・データ源18件を機械照合)。新規にフェイルクローズのadmission検査とKleene代数等の形式的不変条件テスト、判定の完全トレース基盤を追加"
     }
   ]
 }
