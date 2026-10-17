@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "92f0918f6cb52837cb53a8c790c68f906b2c0db1",
-  "last_analyzed_at": "2026-10-15",
+  "last_analyzed_sha": "862a1235ca4d743cc48211309ebbbcc1a5a540a3",
+  "last_analyzed_at": "2026-10-17",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -252,6 +252,13 @@
       "to_sha": "92f0918f6cb52837cb53a8c790c68f906b2c0db1",
       "report": "reports/2026-10-15.md",
       "headline": "ランキング重みの変更なし(57ファイル)。既定で効く変更2件: 広告ブランドセーフティの著者フォールバックON(投稿単位ラベルが無い投稿にアカウント単位のGrok判定を適用、SFA著者の投稿がMediumRisk→Safeに格上げされ広告隣接可能に=広告枠増、格下げは無し)、閲覧者照会が全アカウント状態を含むよう修正(凍結/停止/削除/soft userの閲覧者に実プロフィールが適用されセンシティブ表示の範囲が変化)。仕込みのみ: 縦型動画カルーセル向けイマーシブ専用スコアラー新設(別クラスタExperiment3Fou + IMMERSIVE_LONG_DWELL系列、重み既定0.0でカルーセル自体もOFF)。表示制御ルールDSLは全面刷新だが判定は検証の限り完全不変(レベル割当238組・投稿ルール103件・データ源18件を機械照合)。新規にフェイルクローズのadmission検査とKleene代数等の形式的不変条件テスト、判定の完全トレース基盤を追加"
+    },
+    {
+      "date": "2026-10-17",
+      "from_sha": "92f0918f6cb52837cb53a8c790c68f906b2c0db1",
+      "to_sha": "862a1235ca4d743cc48211309ebbbcc1a5a540a3",
+      "report": "reports/2026-10-17.md",
+      "headline": "ランキング重みの数値変更はゼロ。実効する変更は3点(125ファイル): (1)表示制御のデータ源を必須/ベストエフォートに二分しベストエフォート群の上限を1秒→0.3秒に、軽微な取得失敗でも「判定失敗」を返さなくなった(一時障害でタイムラインから投稿が消えにくくなる一方、ブロック/返信制限/地域限定がまれに緩む)、(2)その結果リポスト元の非表示・制限がリポストに確実に伝播、(3)執行サービスの設定を確信度「行」単位に再設計しlabel_map推定とエビデンス不足時の1段降格実行を廃止(誤検知による自動措置が減る方向)。仕込みのみ: 投稿エンゲージャー特徴(最大32+8人をモデル入力、既定OFF/シャドー稼働)、いいねゼロ投稿co-divert実験(既定OFF)、カルーセル重複排除強化(著者ON/話題ID3階層/動画埋め込み類似度0.72、カルーセル本体は既定OFF)+WTF優先、没入ページRLの重み変更(vqv 0.5→1.0、share 40→4)、広告IsBrandEngagementラベル、検索クエリ入力の器"
     }
   ]
 }
