@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "862a1235ca4d743cc48211309ebbbcc1a5a540a3",
-  "last_analyzed_at": "2026-10-17",
+  "last_analyzed_sha": "74d49a4ffb398949a5f9312f828d7112d7d31f00",
+  "last_analyzed_at": "2026-10-20",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -259,6 +259,13 @@
       "to_sha": "862a1235ca4d743cc48211309ebbbcc1a5a540a3",
       "report": "reports/2026-10-17.md",
       "headline": "ランキング重みの数値変更はゼロ。実効する変更は3点(125ファイル): (1)表示制御のデータ源を必須/ベストエフォートに二分しベストエフォート群の上限を1秒→0.3秒に、軽微な取得失敗でも「判定失敗」を返さなくなった(一時障害でタイムラインから投稿が消えにくくなる一方、ブロック/返信制限/地域限定がまれに緩む)、(2)その結果リポスト元の非表示・制限がリポストに確実に伝播、(3)執行サービスの設定を確信度「行」単位に再設計しlabel_map推定とエビデンス不足時の1段降格実行を廃止(誤検知による自動措置が減る方向)。仕込みのみ: 投稿エンゲージャー特徴(最大32+8人をモデル入力、既定OFF/シャドー稼働)、いいねゼロ投稿co-divert実験(既定OFF)、カルーセル重複排除強化(著者ON/話題ID3階層/動画埋め込み類似度0.72、カルーセル本体は既定OFF)+WTF優先、没入ページRLの重み変更(vqv 0.5→1.0、share 40→4)、広告IsBrandEngagementラベル、検索クエリ入力の器"
+    },
+    {
+      "date": "2026-10-20",
+      "from_sha": "862a1235ca4d743cc48211309ebbbcc1a5a540a3",
+      "to_sha": "74d49a4ffb398949a5f9312f828d7112d7d31f00",
+      "report": "reports/2026-10-20.md",
+      "headline": "大型(179ファイル/+16.3k行): 引用投稿の内側を表示判定の対象に昇格(BOUNCEラベルは引用枠をツームストーン化)=稼働、abuse-enforcementに最大30日の遡及執行(バックフィル)機構と新アクションPhoenixSkip(ラベル118/7日・30日・恒久)を新設=既定無効、新規アカウント(24h以内)向けSOFT_NSFWフィルタをFor YouレコメンドにA/B枠で追加=既定OFF、引用元投稿者による引用枠書き換え(新レベルQuotedTweetRules)=シャドーのみ、話題履歴28日とセレンディピティ計測を新設=既定OFF/5%計測、Phoenix推論・検索をxDS一本化(フォールバック撤去)、SIDに動画6h/6-48h窓追加、動画カルーセルにメディアID・MD5重複排除。ランキング重み(ScoringWeights)・ads/・grox/・thunder/は無変更"
     }
   ]
 }
