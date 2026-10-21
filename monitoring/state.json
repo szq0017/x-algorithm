@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "74d49a4ffb398949a5f9312f828d7112d7d31f00",
-  "last_analyzed_at": "2026-10-20",
+  "last_analyzed_sha": "7f2ca2b914cadac591ea7fceec0c477e473d3dee",
+  "last_analyzed_at": "2026-10-21",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -266,6 +266,13 @@
       "to_sha": "74d49a4ffb398949a5f9312f828d7112d7d31f00",
       "report": "reports/2026-10-20.md",
       "headline": "大型(179ファイル/+16.3k行): 引用投稿の内側を表示判定の対象に昇格(BOUNCEラベルは引用枠をツームストーン化)=稼働、abuse-enforcementに最大30日の遡及執行(バックフィル)機構と新アクションPhoenixSkip(ラベル118/7日・30日・恒久)を新設=既定無効、新規アカウント(24h以内)向けSOFT_NSFWフィルタをFor YouレコメンドにA/B枠で追加=既定OFF、引用元投稿者による引用枠書き換え(新レベルQuotedTweetRules)=シャドーのみ、話題履歴28日とセレンディピティ計測を新設=既定OFF/5%計測、Phoenix推論・検索をxDS一本化(フォールバック撤去)、SIDに動画6h/6-48h窓追加、動画カルーセルにメディアID・MD5重複排除。ランキング重み(ScoringWeights)・ads/・grox/・thunder/は無変更"
+    },
+    {
+      "date": "2026-10-21",
+      "from_sha": "74d49a4ffb398949a5f9312f828d7112d7d31f00",
+      "to_sha": "7f2ca2b914cadac591ea7fceec0c477e473d3dee",
+      "report": "reports/2026-10-21.md",
+      "headline": "ランキング重みは無変更(67ファイル)。上流2層に大きなレバーが2本仕込まれた(両方既定OFF): (1)新フィルタFairShareRankingでスコアリング枠2800件を取得経路ごとに比例配分(従来は末尾から単純切り捨て=後方の経路が丸ごと消える構造)、(2)検索(retrieval)段の価値モデル重みをリクエスト時にJSON注入できる口を新設(proto field 17, 既定空)。遡及執行(バックフィル)は既定速度200/sを削除しフェイルクローズ化(明示設定なしで予算0・速度0=実行拒否、引き上げに確認キーワード必須、設定が古くなれば自動で0、専用デプロイに分離)。VFは引用判定でソーシャルグラフ取得失敗を投稿単位ルールにも「不明」として伝達、引用枠差し替えをルール名→RuleId照合へ、「ユーザー行単位」判定基盤を新設(未稼働・QuotedTweetRules本番化の下準備と推定)、安全性ラベルAPIをゼロコピー化(バイト同値)。計測はセレンディピティに言語越境率、カルーセル候補ログ(既定OFF)を追加。Phoenix学習は本番ホームランカーで候補パッキング有効化"
     }
   ]
 }
