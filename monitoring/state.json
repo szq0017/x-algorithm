@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "07d159b69109f069c85f84d39dd38e38adc040f0",
-  "last_analyzed_at": "2026-10-23",
+  "last_analyzed_sha": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+  "last_analyzed_at": "2026-10-24",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -280,6 +280,13 @@
       "to_sha": "07d159b69109f069c85f84d39dd38e38adc040f0",
       "report": "reports/2026-10-23.md",
       "headline": "大型更新(233ファイル/+25003-13259)。ランキング重みは無変更(home-mixer/scorers/とgrox/plans/はディレクトリ全体無変更)。(1)前回「最重点監視項目」としたFairShareRankingの既定値がfalse→trueに反転=稼働開始(2800枠を取得経路ごとに比例配分、ニッチ経路が有利・フォロー中依存が相対的に不利)。(2)VF: For Youハイドレーション経路に「公益性ラベル」注意喚起オーバーレイを新設(LOW_QUALITY/MISINFO_CIVIC/GENERIC/MEDICAL/CRISIS/IPI対象、2019-04-01以降の投稿、NonCompliant理由で返信・いいね制限)、緊急ラベル投稿は非表示→注意喚起つき表示に変更。(3)VF: フォロー通知/フォローリクエスト承認通知のフィルタAPI FilterNotificationsをフラグなしで稼働(相手のスパム系16ラベル・ブロック・ミュート・受信者の通知設定で落とす。NotGraduatedや既定プロフィール画像の新規アカウントはフォロー通知が届かない)。(4)リアクション動画が元投稿のNSFW/ゴアぼかしと元投稿者の非公開を継承(TimelineHomeHydrationのみ)。(5)執行ルール世代交代: bb1_*スパムボット群(投稿/返信/ユーザー別に凍結・SpamHighRecall30日+生存確認)とimpersonation_scam_classifier_v1を投入、inauthentic_detection_v45とcluster_spam系を全廃、act_requested_actionsも削除。llm_slopのSpamHighRecall期間30日→7日に短縮。(6)head_guard稼働: 執行ヘッド×分類器単位の1時間/1日上限で自動オフスイッチ(異議取り消し率ガードは定義のみ未稼働)。(7)動画カルーセルが追加読み込み(下スクロール)時に非表示化=動画露出枠の実質減。(8)フォロワー限定返信の新設。(9)Spacesの自動通報をScarecrowに新設。(10)Groxに安全性カテゴリ3種(NonConsensualNudity/FraudAndFinancialCrime/LocalLawSensitiveContent)とx_searchツール。既定OFF: 新規24時間ユーザー向けソフトNSFWフィルタ、直近検索16件(埋め込みのみ)のモデル入力化、広告ファネル計測。proto定義のみ未稼働: diversityWeight、履歴URL埋め込み、AdInfo.url_domain、CLIENT_TWEET_VIDEO_SESSION、没入動画データセット"
+    },
+    {
+      "date": "2026-10-24",
+      "from_sha": "07d159b69109f069c85f84d39dd38e38adc040f0",
+      "to_sha": "6258a1549ef808be88fba83d3b2d58364b587ee0",
+      "report": "reports/2026-10-24.md",
+      "headline": "小規模差分(56ファイル)。ランキング重み・広告密度・Grox閾値はすべて無変更。(1)広告にビュースルー×遅延コンバージョンの予測ヘッド6種を新設(クリックなしの後追い購入を学習、認知型キャンペーンに有利) (2)執行の段階的ロールアウトにソルト導入=対象アカウントを任意に再抽選可能(「今まで無事」が免責にならない) (3)信頼度スコア閾値50.0→12.34はダミー値化で本番値を非公開に(挙動変更ではなく情報開示の後退) (4)残り約40ファイルは学習基盤のFP8化・FA4カーネル最適化で挙動不変 (5)広告ファネルトレース既定ON(ログのみ)、VFのStrato同時接続枠16→32"
     }
   ]
 }
