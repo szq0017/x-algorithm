@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "2f252142b9284e692ac72851768c8072d045f0d5",
-  "last_analyzed_at": "2026-10-27",
+  "last_analyzed_sha": "5ed796374ea48ee26058aab66ab10c266bea2bef",
+  "last_analyzed_at": "2026-10-28",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -294,6 +294,13 @@
       "to_sha": "2f252142b9284e692ac72851768c8072d045f0d5",
       "report": "reports/2026-10-27.md",
       "headline": "大型更新(160ファイル/+8144-12298)。ランキング重み・広告密度・Grox閾値・VFルールはすべて無変更。実質は「その一段上」が動いた。(1)【大】自動執行の精度エビデンス下限ガードを撤去: evidence_floorがjudge_evidenceになりエビデンスは観測記録のみで執行をブロックしなくなった、人手のevidence_override機構も遡及執行開始時のweak_evidenceブロックも削除。(2)【大】フォロワー天井免除をYAMLからコードにハードコード化(FOLLOWER_CEILING)し、ルール評価後に無条件適用・投稿単位の執行にも適用・skip_author_credibility_prechecks免責でも突破不可、遡及執行でフォロワー数不明のPostも免除側。(3)ルール別に高フォロワー免除/高信頼度免除を狭める設定口を新設(follower_threshold=0で免除オフ、厳しくする変更はconfirm必須、天井は不可侵、レコードv4→v5)。(4)VM Rankerにuser debias(個人ベースライン再センタリング、14ヘッド、alpha/clip±2.0、成果物1h鮮度)を新設=本体は既定OFFだがhome-mixerのVMRankerSendDebiasInputsがfalse→trueで配線完了。(5)Home二塔リトリーバルがマルチ興味化: user_query_heads 0→4、MoL有効化、in-batch偽陰性マスク、温度0.006固定、重いユーザーの学習重み抑制0.5、SIDプレフィックス埋め込み0→128、埋め込みLR0.1→0.2。(6)履歴IDリスト特徴を大幅組み替え: リンク開封90d 25→55/外部リンク長時間滞在90d 15→30/ブックマーク・リポスト90d 15→30/動画完視聴30→50/クリック28d 30→60が増量、プロフィールクリック28d 30→15・返信90d 10→5・共有90d 10→5が縮小(7d枠廃止)、いいねは7d 25→40で28d枠とlatest枠を廃止=当日〜1週間が支配的に、オーガニック投稿側は当日top30→80+latest寄せ。(7)ランキングモデルhome_direct_packedに候補専用2層追加・FP8全面化、検索に著者ハンドル完全一致/表示名重なり/hasVideo/hasImage特徴を追加。(8)gen_recs・SID検索の実装を一括削除(約4500行、SID自体は特徴量として残存)。(9)VFは大規模リファクタのみで挙動変更なし、レガシーVFサービスとの二重呼び出し比較ハーネス(vf_service.rs 991行+users.rs 372行)を完全削除=Rust版VFへの移行完了を示唆、代わりにvf-gate期待値CLIを新設"
+    },
+    {
+      "date": "2026-10-28",
+      "from_sha": "2f252142b9284e692ac72851768c8072d045f0d5",
+      "to_sha": "5ed796374ea48ee26058aab66ab10c266bea2bef",
+      "report": "reports/2026-10-28.md",
+      "headline": "実際に見え方が変わる削除が2件(106ファイル): ブラジル2026選挙フィルタを完全削除(28アカウントが非フォロワーのFor Youに復帰)、通報ヒューリスティクス由来のセンシティブ表示規制ルール8本(ぼかし/年齢確認墓石/旧式警告)を全削除・代替なし。並び順生成の新方式2本を新設(ページ単位デコード=候補200件からモデルが64枠を構成、ページRL探索=上位64件を温度0.2で確率的並べ替え)——ともに既定OFFだが配線完了。自動執行の照会がソフトアカウントまで到達(include_soft_users)。新規ユーザーソフトNSFWフィルタ 1日→7日+活動100件未満条件。Groxの動画隠しレイヤー検出を学習済みスコアラに置換。ランキング重み・広告・Grox閾値は無変更"
     }
   ]
 }
