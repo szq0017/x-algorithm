@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "606b254b45be798bfaecfa8c23f5a9c51bc8000c",
-  "last_analyzed_at": "2026-10-29",
+  "last_analyzed_sha": "7fef3ba19d82d1f76dec65f31b981ca817a2ea06",
+  "last_analyzed_at": "2026-10-30",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -308,6 +308,13 @@
       "to_sha": "606b254b45be798bfaecfa8c23f5a9c51bc8000c",
       "report": "reports/2026-10-29.md",
       "headline": "広告の出方に手が入った日(84ファイル/+3659-1622)。ランキング重み・広告挿入間隔・Grox閾値・OON係数・著者多様性・retrieval Top-K・VFルール内容はすべて無変更。(1)【今日から効く】広告ブランドセーフティ判定v2を既定ON→OFFへ差し戻し(10/3からONだったものを撤回、param.rs:938-943)。v1はGrok旧ラベルの有無でのみ「採点済み」を判定するため、新ラベル(GROK_SFA_V2等)のみが付いた投稿は未採点=MediumRisk扱いに戻り、広告の安全な隣接枠の供給が減る方向(brand_safety.rs:103-131 vs 158-188)。(2)【既定OFF・配線完了】広告挿入の新方式2本を新設: slot_spread(枠をページ全体に等間隔配分+後続センシティブ広告への安全枠温存の先読み)、least_movement(オーガニックの順位ズレ合計を最小化しつつ1本目の広告をページ上部へ強く引き寄せる=重み50対2)。テストで「multi_risk以上の広告本数」を下限として固定しつつBS違反ゼロを検証。既定はmulti_riskのまま。(3)広告が入らなかった理由をads_supply/spacing/safe_postsに切り分ける計測を共通化(health_metrics.rs新規)。(1)(2)(3)は「安全な隣接投稿不足で広告充填が詰まっている」という一つの文脈として読める。(4)縦型動画カルーセルのスコアに「開封率×没入滞在時間=期待視聴秒数」の第3項を追加(既定重み0.0)、学習側も縦型動画ページRLの滞在時間目的をTweedie/MAEからCREAD(本流home_direct_packedと同方式)へ差し替えた新設定immersive_page_rl_creadを追加=「開かせる」から「長く見せる」へ。(5)ページログ(実際に出した並びのRedis記録)が既定OFF→ON、ページRLとシーケンスパッキング/候補専用レイヤーの非互換も解消(candidate_only_layers_update_user_token新設)=ページ単位並べ替えの実用化が前進、ただし並べ替えスイッチ自体はOFF維持。(6)広告にリードジェン・コンバージョン予測ヘッドを新設(即時ストリーム+クリック条件で学習)。(7)カルーセルで出した動画を重複排除リストから除外=カルーセル視聴分が通常フィードに再出現しうる(既定ON)。(8)VFは約50ファイルの大規模リファクタでルール内容不変(ルール族化・ClientSwitchビットセット化・FlockUserPairソース廃止による社会グラフ取得の一本化)、実挙動変更は「見つからない投稿/著者をFailedではなくNotFoundで返す」1件のみ。(9)For You推薦レベルではNSFWぼかしルール6本がドロップ先行で構造上到達不能であることがテストで明文化(既存挙動)"
+    },
+    {
+      "date": "2026-10-30",
+      "from_sha": "606b254b45be798bfaecfa8c23f5a9c51bc8000c",
+      "to_sha": "7fef3ba19d82d1f76dec65f31b981ca817a2ea06",
+      "report": "reports/2026-10-30.md",
+      "headline": "通知側に大型変更(90ファイル): メンション/返信/写真タグの通知に投稿単位の可視性フィルタを新設(低品質・重複コンテンツ・Smyteスパムは設定不問で遮断、乱用・信頼できないURL・重複メンション・スパム返信は品質フィルターON×非フォロワーで遮断)、通知のなりすまし防止、「フォロー中のみ」設定にコミュニティ例外。Under the Hoodに異議申し立て案内と対象投稿ID(最大500件/ラベル)を追加(既定OFF)。広告エンゲージメント回数168特徴量+ターゲティング条件をモデル入力に追加(既定OFF)。凍結に永久/ポリシー種別の選択肢。ランキング重み・広告挿入・Grox・Thunderは無変更"
     }
   ]
 }
