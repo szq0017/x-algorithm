@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "7fef3ba19d82d1f76dec65f31b981ca817a2ea06",
-  "last_analyzed_at": "2026-10-30",
+  "last_analyzed_sha": "9106e9f33ee9cc6a92929fc798ae6c566e2841cb",
+  "last_analyzed_at": "2026-10-31",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -315,6 +315,13 @@
       "to_sha": "7fef3ba19d82d1f76dec65f31b981ca817a2ea06",
       "report": "reports/2026-10-30.md",
       "headline": "通知側に大型変更(90ファイル): メンション/返信/写真タグの通知に投稿単位の可視性フィルタを新設(低品質・重複コンテンツ・Smyteスパムは設定不問で遮断、乱用・信頼できないURL・重複メンション・スパム返信は品質フィルターON×非フォロワーで遮断)、通知のなりすまし防止、「フォロー中のみ」設定にコミュニティ例外。Under the Hoodに異議申し立て案内と対象投稿ID(最大500件/ラベル)を追加(既定OFF)。広告エンゲージメント回数168特徴量+ターゲティング条件をモデル入力に追加(既定OFF)。凍結に永久/ポリシー種別の選択肢。ランキング重み・広告挿入・Grox・Thunderは無変更"
+    },
+    {
+      "date": "2026-10-31",
+      "from_sha": "7fef3ba19d82d1f76dec65f31b981ca817a2ea06",
+      "to_sha": "9106e9f33ee9cc6a92929fc798ae6c566e2841cb",
+      "report": "reports/2026-10-31.md",
+      "headline": "既定値フラグ2件が実際に反転(52ファイル): 広告挿入アルゴリズムが multi_risk→slot_spread(広告枠をページ全体に等間隔配置・本数は multi_risk 以上をテストで保証)、動画カルーセルの高リスク除外が既定ON(HighRisk判定と判定未取得の動画がカルーセル露出を喪失)。加えて Under the Hood の対象投稿ID表示の配線完成(5%シェア率ゲート・既定OFF)、異議申し立て先の国別全面改訂(英国OSA/EU DSA/豪/ブラジル + 法的削除の日本専用フォーム追加、アカウントラベルの案内は削除)、広告の遅延エンゲージメント予測ヘッド2本新設(既定OFF)、Grox 隠しレイヤー検出の誤検知削減。ランキング重み・Thunder・OON係数・retrieval Top-K・grox閾値は無変更"
     }
   ]
 }
