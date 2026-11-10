@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "9106e9f33ee9cc6a92929fc798ae6c566e2841cb",
-  "last_analyzed_at": "2026-10-31",
+  "last_analyzed_sha": "660cd7407c5726ec8d3aef27c32e1377b1c7e480",
+  "last_analyzed_at": "2026-11-10",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -322,6 +322,13 @@
       "to_sha": "9106e9f33ee9cc6a92929fc798ae6c566e2841cb",
       "report": "reports/2026-10-31.md",
       "headline": "既定値フラグ2件が実際に反転(52ファイル): 広告挿入アルゴリズムが multi_risk→slot_spread(広告枠をページ全体に等間隔配置・本数は multi_risk 以上をテストで保証)、動画カルーセルの高リスク除外が既定ON(HighRisk判定と判定未取得の動画がカルーセル露出を喪失)。加えて Under the Hood の対象投稿ID表示の配線完成(5%シェア率ゲート・既定OFF)、異議申し立て先の国別全面改訂(英国OSA/EU DSA/豪/ブラジル + 法的削除の日本専用フォーム追加、アカウントラベルの案内は削除)、広告の遅延エンゲージメント予測ヘッド2本新設(既定OFF)、Grox 隠しレイヤー検出の誤検知削減。ランキング重み・Thunder・OON係数・retrieval Top-K・grox閾値は無変更"
+    },
+    {
+      "date": "2026-11-10",
+      "from_sha": "9106e9f33ee9cc6a92929fc798ae6c566e2841cb",
+      "to_sha": "660cd7407c5726ec8d3aef27c32e1377b1c7e480",
+      "report": "reports/2026-11-10.md",
+      "headline": "数ヶ月ぶりにFor Youランキング重みの実数値が動いた日(262ファイル/+24508-13475、10日分の同期がまとめて反映)。param.rsの本番ミラー同期が11-09 16:00 UTCに更新され、7件が変更: いいね0.66→0.708(+7.3%)、共有2.0→2.118(+5.9%)、滞在時間0.006→0.0075(+25%)、クリック0.3→0.274(-8.7%)、クリック後滞在0.4→0.385、「動画を開く」0.02→0.0(ゼロ化=動画固有の加点が消滅)、「興味がない」-52.272→-53.07。同時にランカーのモデル世代交代: 行動履歴形式がDENSE_WITH_LONG_DWELL→..._HOME_EXCURSION(既定)、EnableHomeExcursionScoresが既定ON、学習側で「動画の継続視聴秒数」「プロフィール滞在秒数」の2ヘッド新設(損失0.013/0.0035)+time gap特徴量+view損失1.0→0.5+正則化再調整。ただし新2ヘッドがスコアに直接加算されるかは要確認(home-mixer側は0.0固定、vm-ranker側は本番値不明)。可視性フィルタ: ダイナミック商品広告のエンゲージメント8操作を全ユーザー対象・ゲートなしで制限(説明文なし)、いいね/リポスト通知を初めてVF対象化(対象投稿の著者が受信者本人でない偽装通知と削除済み投稿への通知を遮断)。Groxスパム検知が写真タグを@メンションとして計上+重複ハンドルを1件に正規化。広告履歴キャッシュのDC間複製が既定ON(同一広告の短時間再表示が減少、本数は不変)。AI生成動画の専用retrievalインデックス新設(自己申告ai_video_self/検出ai_video_detected、24h/48h/7d窓、NSFW除外、再利用動画は判定継承、配信側の消費はまだなし)。既定OFF: 履歴シャッフルretrieval、Under the Hoodの上位3ヘッド表示+トレース画面、カルーセルのCTRモデル/既視除外(3日2000件)/中リスク除外、新規ユーザーフィルタの比率化(いいね率0.4%)。Thunder・OON係数・著者多様性・retrieval Top-K・grox閾値・広告挿入密度は無変更"
     }
   ]
 }
