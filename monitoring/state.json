@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "660cd7407c5726ec8d3aef27c32e1377b1c7e480",
-  "last_analyzed_at": "2026-11-10",
+  "last_analyzed_sha": "f06f45adc05578198e672db6c563a0435e7232dd",
+  "last_analyzed_at": "2026-11-11",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -329,6 +329,13 @@
       "to_sha": "660cd7407c5726ec8d3aef27c32e1377b1c7e480",
       "report": "reports/2026-11-10.md",
       "headline": "数ヶ月ぶりにFor Youランキング重みの実数値が動いた日(262ファイル/+24508-13475、10日分の同期がまとめて反映)。param.rsの本番ミラー同期が11-09 16:00 UTCに更新され、7件が変更: いいね0.66→0.708(+7.3%)、共有2.0→2.118(+5.9%)、滞在時間0.006→0.0075(+25%)、クリック0.3→0.274(-8.7%)、クリック後滞在0.4→0.385、「動画を開く」0.02→0.0(ゼロ化=動画固有の加点が消滅)、「興味がない」-52.272→-53.07。同時にランカーのモデル世代交代: 行動履歴形式がDENSE_WITH_LONG_DWELL→..._HOME_EXCURSION(既定)、EnableHomeExcursionScoresが既定ON、学習側で「動画の継続視聴秒数」「プロフィール滞在秒数」の2ヘッド新設(損失0.013/0.0035)+time gap特徴量+view損失1.0→0.5+正則化再調整。ただし新2ヘッドがスコアに直接加算されるかは要確認(home-mixer側は0.0固定、vm-ranker側は本番値不明)。可視性フィルタ: ダイナミック商品広告のエンゲージメント8操作を全ユーザー対象・ゲートなしで制限(説明文なし)、いいね/リポスト通知を初めてVF対象化(対象投稿の著者が受信者本人でない偽装通知と削除済み投稿への通知を遮断)。Groxスパム検知が写真タグを@メンションとして計上+重複ハンドルを1件に正規化。広告履歴キャッシュのDC間複製が既定ON(同一広告の短時間再表示が減少、本数は不変)。AI生成動画の専用retrievalインデックス新設(自己申告ai_video_self/検出ai_video_detected、24h/48h/7d窓、NSFW除外、再利用動画は判定継承、配信側の消費はまだなし)。既定OFF: 履歴シャッフルretrieval、Under the Hoodの上位3ヘッド表示+トレース画面、カルーセルのCTRモデル/既視除外(3日2000件)/中リスク除外、新規ユーザーフィルタの比率化(いいね率0.4%)。Thunder・OON係数・著者多様性・retrieval Top-K・grox閾値・広告挿入密度は無変更"
+    },
+    {
+      "date": "2026-11-11",
+      "from_sha": "660cd7407c5726ec8d3aef27c32e1377b1c7e480",
+      "to_sha": "f06f45adc05578198e672db6c563a0435e7232dd",
+      "report": "reports/2026-11-11.md",
+      "headline": "ランキング重みの数値は無変更。既定OFFの新配線が3件: (1) ランキングAIに「直近に見た投稿64件(トピック/滞在時間/行動ビット)」+「候補上位200件のトピック」を渡す経路を新設(VMRankerSendPostTopics=false、新RecentViewsQueryHydrator+util/post_annotations.rs、DENSE_WITH_RECENT_IMPRESSIONS集計、タイムアウト80ms、フォロー中タブ/トピックTLは対象外。スコアへの作用は要確認)、(2) Grokの「おすすめタスク」カードをFor You 4番目(slot 3)に固定挿入する枠を新設(EnableJetfuelFrameGrokbotSuggestedTasks=false、×で消せない、疲労6時間、ホームのみ、初回応答のみ・ポーリング除外。frames基盤にFetch::Jetfuel直接取得経路とPlacement::AtSlot/Surface::ForYouHomeを追加)、(3) カルーセルのフィード引き上げモードEnableVideoCarouselTakeFromFeed(false)。既定ONに反転: 動画カルーセルの中リスク除外とEnableVideoCarouselSeenFilter(ただし親EnableVideoCarouselは依然false。中リスク除外ONだとブランドセーフティ未判定(None)の動画も除外、既視除外は3日/2000件)。運用側: 個別投稿にNsfwHighPrecision/SoftNsfwラベルを手動付与するPageAction::PostLabelを新設(2種ホワイトリスト、7日/30日/永久、付与前に現ラベルを読み同等以上は送らずalready_post_labeledでスキップ、dedupキーをラベル別に分離)。安全ラベルキャッシュ: REFRESH_STEPSが[30s,90s]→[60s]の1回、not_found_ttl 10分→1時間(反映・復帰が最大1時間遅延する方向。ただしserve_buckets/shadow_buckets既定0で配信未使用、実効範囲は要確認)。その他: Phoenix予測にreturn_candidate_tweet_id_only=true(挙動不変)、シャドー実験枠5→9(Experiment20Fou除外/24-28追加、各0.3、配信未使用)、UAS集計33/35をreserved化、HIGH_SPAMMY_TWEET_CONTENT_SCORE→DEPRECATED_LABEL_144(元々VF対応表に無いラベル)、未使用ヘルプリンク定数6件削除、Twhin入力をfav+動画品質視聴に事前絞り込み(挙動不変)、パイプライン計測にコンポーネント別エラー件数、フィルタ7件をFilterResult::partitionにリファクタ(挙動不変)。Thunder・OON係数・著者多様性・retrieval Top-K・grox閾値・広告挿入密度は無変更"
     }
   ]
 }
