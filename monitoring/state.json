@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "f06f45adc05578198e672db6c563a0435e7232dd",
-  "last_analyzed_at": "2026-11-11",
+  "last_analyzed_sha": "cec61682937a4899360a340acba9e9b9bb8f43e3",
+  "last_analyzed_at": "2026-11-13",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -336,6 +336,13 @@
       "to_sha": "f06f45adc05578198e672db6c563a0435e7232dd",
       "report": "reports/2026-11-11.md",
       "headline": "ランキング重みの数値は無変更。既定OFFの新配線が3件: (1) ランキングAIに「直近に見た投稿64件(トピック/滞在時間/行動ビット)」+「候補上位200件のトピック」を渡す経路を新設(VMRankerSendPostTopics=false、新RecentViewsQueryHydrator+util/post_annotations.rs、DENSE_WITH_RECENT_IMPRESSIONS集計、タイムアウト80ms、フォロー中タブ/トピックTLは対象外。スコアへの作用は要確認)、(2) Grokの「おすすめタスク」カードをFor You 4番目(slot 3)に固定挿入する枠を新設(EnableJetfuelFrameGrokbotSuggestedTasks=false、×で消せない、疲労6時間、ホームのみ、初回応答のみ・ポーリング除外。frames基盤にFetch::Jetfuel直接取得経路とPlacement::AtSlot/Surface::ForYouHomeを追加)、(3) カルーセルのフィード引き上げモードEnableVideoCarouselTakeFromFeed(false)。既定ONに反転: 動画カルーセルの中リスク除外とEnableVideoCarouselSeenFilter(ただし親EnableVideoCarouselは依然false。中リスク除外ONだとブランドセーフティ未判定(None)の動画も除外、既視除外は3日/2000件)。運用側: 個別投稿にNsfwHighPrecision/SoftNsfwラベルを手動付与するPageAction::PostLabelを新設(2種ホワイトリスト、7日/30日/永久、付与前に現ラベルを読み同等以上は送らずalready_post_labeledでスキップ、dedupキーをラベル別に分離)。安全ラベルキャッシュ: REFRESH_STEPSが[30s,90s]→[60s]の1回、not_found_ttl 10分→1時間(反映・復帰が最大1時間遅延する方向。ただしserve_buckets/shadow_buckets既定0で配信未使用、実効範囲は要確認)。その他: Phoenix予測にreturn_candidate_tweet_id_only=true(挙動不変)、シャドー実験枠5→9(Experiment20Fou除外/24-28追加、各0.3、配信未使用)、UAS集計33/35をreserved化、HIGH_SPAMMY_TWEET_CONTENT_SCORE→DEPRECATED_LABEL_144(元々VF対応表に無いラベル)、未使用ヘルプリンク定数6件削除、Twhin入力をfav+動画品質視聴に事前絞り込み(挙動不変)、パイプライン計測にコンポーネント別エラー件数、フィルタ7件をFilterResult::partitionにリファクタ(挙動不変)。Thunder・OON係数・著者多様性・retrieval Top-K・grox閾値・広告挿入密度は無変更"
+    },
+    {
+      "date": "2026-11-13",
+      "from_sha": "f06f45adc05578198e672db6c563a0435e7232dd",
+      "to_sha": "cec61682937a4899360a340acba9e9b9bb8f43e3",
+      "report": "reports/2026-11-13.md",
+      "headline": "ランキング重みは無変更。実挙動の変更あり: (1)おすすめ系2レベル(TimelineHomeRecommendations/ImmersiveExpandedRecommendations)でDO_NOT_AMPLIFYとMALICIOUS_URLのdrop対象がNonAuthors→NonFollowersに緩和、フォロワーには表示されるようになった(golden_corpus/oon_tweet_label.rsの期待値もFollower=許可に更新、ログアウトは引き続きdrop)。(2)通知VFの対象にQuote/ContactJoined/AddedToListを追加(Quoteは新レベルNOTIFICATIONS_WRITER_V2_QUOTE=作者状態/閲覧者/高度なフィルタ/作者ラベル+only_people_i_follow_outside_community、ContactJoined/AddedToListはFollowと同じActor審査)。(3)写真タグ付け通知にSPAM_HIGH_RECALL_OON(新規ルール、NonFollowers)とRISKY_HIGH_VIZ_REPLY_OONを追加(従来はonly_people_i_follow_outside_communityのみ)。(4)post通知がfail-closedに: owned_post(投稿解決+投稿者=actor)を先に判定し、取得失敗/投稿者不一致なら通知を落とす(旧実装はviewer_failed時と投稿未取得時に通知を通していた)。(5)Grokおすすめタスクカードの疲労度をStrato永続化に移行(Fatigue{served_key=home.grokbot_suggested_tasks.served, dismissal_key=home.grokbot_suggested_tasks, 既定6h}、新FrameDismissalQueryHydrator+FrameDismissalSideEffect、読み取り失敗時は非表示のfail-closed、served.rsのrested()削除、カード高さ0→433。親スイッチEnableJetfuelFrames/grokbot_suggested_tasks_enabledは依然false)。(6)運用: 手動付与できる投稿ラベルにNsfaHighPrecision(155)/NsfaLimitedInventory(182)を追加(7d/30d/永久)→brand_safetyでMEDIUM/LOWリスク判定=広告隣接制限、投稿単位で収益性に影響。学習基盤: recent_history_dropout_rate(既定0.0)/window 900秒を新設し直近履歴行を確率的に落とすが、EXPLICIT_NEGATIVE_ACTIONS(報告/興味なし/ブロック/ミュート等10種)は常に保持。配信側にもInputBuffer::drop_recent_historyを実装(呼び出し元なし)。proto: ClientContextにdevice_orientation(縦/横)、UserActionAggregationTypeにIMMERSIVE_LONG_DWELL_GALLERY_3S=36。rank-allにAI生成動画の新インデックスai_video_model構築。削除: shuffled_history_phoenix_source+EnableShuffledHistoryRetrieval+専用集計(元々既定OFF)、VFのexplain.rs/post_card.rs/rules/expansion.rs→why.rs+bin/vf-why.rs(内部CLI)。シャドー枠にExperiment29Fou:0.3追加/Experiment12Fou:0明示。挙動不変の大規模リファクタ: 候補ハイドレーターのTwoPhaseHydrator化(fetch→apply、全件クローン削減)、selectorのソートを順列入れ替え方式に(NaN時は従来比較)、重複除去2フィルタをdeduplicateに統合、retrieved_candidates保持をデバッグ要求時のみに、インタースティシャルのレガシーfiltered_reasonを常にContainNsfwMedia(本番ルールは元々同値)、VF検証ゲートを広告レベルと通知RPCに拡張。ScoringWeights・Thunder・OON係数・著者多様性・retrieval Top-K・grox閾値・広告挿入密度は無変更"
     }
   ]
 }
