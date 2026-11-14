@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "cec61682937a4899360a340acba9e9b9bb8f43e3",
-  "last_analyzed_at": "2026-11-13",
+  "last_analyzed_sha": "590f3926e5bc33c50d9ece13953623e1e75ee595",
+  "last_analyzed_at": "2026-11-14",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -343,6 +343,13 @@
       "to_sha": "cec61682937a4899360a340acba9e9b9bb8f43e3",
       "report": "reports/2026-11-13.md",
       "headline": "ランキング重みは無変更。実挙動の変更あり: (1)おすすめ系2レベル(TimelineHomeRecommendations/ImmersiveExpandedRecommendations)でDO_NOT_AMPLIFYとMALICIOUS_URLのdrop対象がNonAuthors→NonFollowersに緩和、フォロワーには表示されるようになった(golden_corpus/oon_tweet_label.rsの期待値もFollower=許可に更新、ログアウトは引き続きdrop)。(2)通知VFの対象にQuote/ContactJoined/AddedToListを追加(Quoteは新レベルNOTIFICATIONS_WRITER_V2_QUOTE=作者状態/閲覧者/高度なフィルタ/作者ラベル+only_people_i_follow_outside_community、ContactJoined/AddedToListはFollowと同じActor審査)。(3)写真タグ付け通知にSPAM_HIGH_RECALL_OON(新規ルール、NonFollowers)とRISKY_HIGH_VIZ_REPLY_OONを追加(従来はonly_people_i_follow_outside_communityのみ)。(4)post通知がfail-closedに: owned_post(投稿解決+投稿者=actor)を先に判定し、取得失敗/投稿者不一致なら通知を落とす(旧実装はviewer_failed時と投稿未取得時に通知を通していた)。(5)Grokおすすめタスクカードの疲労度をStrato永続化に移行(Fatigue{served_key=home.grokbot_suggested_tasks.served, dismissal_key=home.grokbot_suggested_tasks, 既定6h}、新FrameDismissalQueryHydrator+FrameDismissalSideEffect、読み取り失敗時は非表示のfail-closed、served.rsのrested()削除、カード高さ0→433。親スイッチEnableJetfuelFrames/grokbot_suggested_tasks_enabledは依然false)。(6)運用: 手動付与できる投稿ラベルにNsfaHighPrecision(155)/NsfaLimitedInventory(182)を追加(7d/30d/永久)→brand_safetyでMEDIUM/LOWリスク判定=広告隣接制限、投稿単位で収益性に影響。学習基盤: recent_history_dropout_rate(既定0.0)/window 900秒を新設し直近履歴行を確率的に落とすが、EXPLICIT_NEGATIVE_ACTIONS(報告/興味なし/ブロック/ミュート等10種)は常に保持。配信側にもInputBuffer::drop_recent_historyを実装(呼び出し元なし)。proto: ClientContextにdevice_orientation(縦/横)、UserActionAggregationTypeにIMMERSIVE_LONG_DWELL_GALLERY_3S=36。rank-allにAI生成動画の新インデックスai_video_model構築。削除: shuffled_history_phoenix_source+EnableShuffledHistoryRetrieval+専用集計(元々既定OFF)、VFのexplain.rs/post_card.rs/rules/expansion.rs→why.rs+bin/vf-why.rs(内部CLI)。シャドー枠にExperiment29Fou:0.3追加/Experiment12Fou:0明示。挙動不変の大規模リファクタ: 候補ハイドレーターのTwoPhaseHydrator化(fetch→apply、全件クローン削減)、selectorのソートを順列入れ替え方式に(NaN時は従来比較)、重複除去2フィルタをdeduplicateに統合、retrieved_candidates保持をデバッグ要求時のみに、インタースティシャルのレガシーfiltered_reasonを常にContainNsfwMedia(本番ルールは元々同値)、VF検証ゲートを広告レベルと通知RPCに拡張。ScoringWeights・Thunder・OON係数・著者多様性・retrieval Top-K・grox閾値・広告挿入密度は無変更"
+    },
+    {
+      "date": "2026-11-14",
+      "from_sha": "cec61682937a4899360a340acba9e9b9bb8f43e3",
+      "to_sha": "590f3926e5bc33c50d9ece13953623e1e75ee595",
+      "report": "reports/2026-11-14.md",
+      "headline": "スコア重み変更: ShareViaCopyLinkWeight 20.0→0.0（home-mixer/params/param.rs:496-500、2026-11-12同期の本番FSミラー）。変更前で単独最大の正重みが無効化、リンクコピー共有の予測確率がおすすめスコアから除外。他の重み(favorite 0.708/reply 5.0/+相互15.0/retweet 1.0/quote 5.0/share_via_dm 5.0/not_interested -53.07)は不変。grox: スパムポリシーに SpamPromotesClicks/Replies/Shares を追加(state.py:45-47)、Shares のみ高PageRankユーザーでも無条件に SpamHighRecall 付与(result_sink.py:236-241)、Clicks/Replies は専用ラベルのみでスパムラベル無し。3種とも PromotesClicks/Replies/Shares ラベルを付与(下流効果はリポジトリ外、要確認)。VF: Like/Repost通知で受信者投稿がリポストなら元投稿を新ルール群 NOTIFICATIONS_WRITER_V2_RETWEET_SOURCE(levels.rs:289-300)で審査しdrop(notification.rs:142-172)、自投稿のセルフリポストは通過。通知の採否順序も変更(notification.rs:26-39)。grox: 5枚以上のメディア投稿を4枚ずつ分割して全枚数PTOS実行する safety_ptos_many_media フロー新設(constants.py:44-46, task_safety_ptos_many_media.py)。vm-ranker: DPPにスライディング窓モード新設(dpp.rs:360-406 window_greedy、cos²を距離減衰重みで減点、貪欲順で配信)、文脈に直近10分の配信履歴を最大200件(dpp_model.rs:14,130-170 / vm_ranker_request.rs:31,115-153、ForYouのみ)。既定OFF(DppWindow=0/DppGreedyOrder=false/VMRankerSendDppHistory=false)。phoenix: recent_positive_* 機構を追加、直近900秒または直近5件(2時間以内)のポジティブ操作(fav/RT/reply/quote/share/copylink/DM)履歴トークンのattention valueをスケール(recsys_model.py:191-199,318-347,3906-3949 / layers.py:45-50)、ネガティブ操作含む行は除外、既定scale=1.0で無効。既存のrecent_history_dropout_rateとは別機構で併存。広告: フォロー中タブの最小投稿数を AdsFollowingMinPosts(既定5)でパラメータ化(following_ad_blender.rs:17,36)、現状挙動不変。安全性ラベル: 呼出元デッドライン尊重＋全失敗種別でstale(期限切れ)ラベルfallback(source.rs:113-128,243-265 / safety_labels.rs:55-91)。運用: 投稿ラベルに付与元ヘッド名をsourceとして記録(service.rs:75-81)。観測のみ: 交差セッション(3/10/30分)・交差ページ(3/10/35件)のSID/著者エントロピー計測とtop3ステージ追加(response_diversity_stats_side_effect.rs:23-29,307-)。その他: AI動画のモデルベース新インデックス ai_video_model(1/2/7/14日)、ScoreCacheInfo proto、VMRanker Experiment7/8、retrieval非圧縮クラスタ指定、Grokのスクリーンショット/URL動画スイッチ化。挙動不変リファクタ: CachedFetch共通トレイト導入とハイドレーターのキャッシュ化、PostCandidateの大フィールドBox化、VF国リストのビットセット化、limited-actions FSエンジン分離"
     }
   ]
 }
