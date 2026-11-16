@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "590f3926e5bc33c50d9ece13953623e1e75ee595",
-  "last_analyzed_at": "2026-11-14",
+  "last_analyzed_sha": "30647a85a20cbdd114169beb9973680c4dc4f401",
+  "last_analyzed_at": "2026-11-16",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -350,6 +350,13 @@
       "to_sha": "590f3926e5bc33c50d9ece13953623e1e75ee595",
       "report": "reports/2026-11-14.md",
       "headline": "スコア重み変更: ShareViaCopyLinkWeight 20.0→0.0（home-mixer/params/param.rs:496-500、2026-11-12同期の本番FSミラー）。変更前で単独最大の正重みが無効化、リンクコピー共有の予測確率がおすすめスコアから除外。他の重み(favorite 0.708/reply 5.0/+相互15.0/retweet 1.0/quote 5.0/share_via_dm 5.0/not_interested -53.07)は不変。grox: スパムポリシーに SpamPromotesClicks/Replies/Shares を追加(state.py:45-47)、Shares のみ高PageRankユーザーでも無条件に SpamHighRecall 付与(result_sink.py:236-241)、Clicks/Replies は専用ラベルのみでスパムラベル無し。3種とも PromotesClicks/Replies/Shares ラベルを付与(下流効果はリポジトリ外、要確認)。VF: Like/Repost通知で受信者投稿がリポストなら元投稿を新ルール群 NOTIFICATIONS_WRITER_V2_RETWEET_SOURCE(levels.rs:289-300)で審査しdrop(notification.rs:142-172)、自投稿のセルフリポストは通過。通知の採否順序も変更(notification.rs:26-39)。grox: 5枚以上のメディア投稿を4枚ずつ分割して全枚数PTOS実行する safety_ptos_many_media フロー新設(constants.py:44-46, task_safety_ptos_many_media.py)。vm-ranker: DPPにスライディング窓モード新設(dpp.rs:360-406 window_greedy、cos²を距離減衰重みで減点、貪欲順で配信)、文脈に直近10分の配信履歴を最大200件(dpp_model.rs:14,130-170 / vm_ranker_request.rs:31,115-153、ForYouのみ)。既定OFF(DppWindow=0/DppGreedyOrder=false/VMRankerSendDppHistory=false)。phoenix: recent_positive_* 機構を追加、直近900秒または直近5件(2時間以内)のポジティブ操作(fav/RT/reply/quote/share/copylink/DM)履歴トークンのattention valueをスケール(recsys_model.py:191-199,318-347,3906-3949 / layers.py:45-50)、ネガティブ操作含む行は除外、既定scale=1.0で無効。既存のrecent_history_dropout_rateとは別機構で併存。広告: フォロー中タブの最小投稿数を AdsFollowingMinPosts(既定5)でパラメータ化(following_ad_blender.rs:17,36)、現状挙動不変。安全性ラベル: 呼出元デッドライン尊重＋全失敗種別でstale(期限切れ)ラベルfallback(source.rs:113-128,243-265 / safety_labels.rs:55-91)。運用: 投稿ラベルに付与元ヘッド名をsourceとして記録(service.rs:75-81)。観測のみ: 交差セッション(3/10/30分)・交差ページ(3/10/35件)のSID/著者エントロピー計測とtop3ステージ追加(response_diversity_stats_side_effect.rs:23-29,307-)。その他: AI動画のモデルベース新インデックス ai_video_model(1/2/7/14日)、ScoreCacheInfo proto、VMRanker Experiment7/8、retrieval非圧縮クラスタ指定、Grokのスクリーンショット/URL動画スイッチ化。挙動不変リファクタ: CachedFetch共通トレイト導入とハイドレーターのキャッシュ化、PostCandidateの大フィールドBox化、VF国リストのビットセット化、limited-actions FSエンジン分離"
+    },
+    {
+      "date": "2026-11-16",
+      "from_sha": "590f3926e5bc33c50d9ece13953623e1e75ee595",
+      "to_sha": "30647a85a20cbdd114169beb9973680c4dc4f401",
+      "report": "reports/2026-11-16.md",
+      "headline": "小規模差分(9ファイル/+106-62)。スコア重み・Thunder・OON係数・著者多様性・retrieval Top-K・広告挿入密度・grox閾値はいずれも無変更。(1)本番FSミラー(param.rs:1 同期2026-11-12→2026-11-13)で VMRankerSendDppHistory が false→true に切替＝おすすめタブ(RequestType::ForYou限定、vm_ranker_request.rs:31-32)の配信履歴をvm-rankerへ送る配管が本番既定ON。同時に VMRankerDppHistoryMaxItems 200→50(param.rs:639-643)で射程が直近数ページに縮小。履歴の実消費は DppWindow>0 のときのみ(dpp_model.rs:183-189 / scoring/mod.rs:60-66)で、vm-ranker/params.rs:266 の既定は依然0だが同ファイルは本番FSミラーではないため本番値は要確認。昨日のレポートで『全既定OFF』としたDPPスライディング窓の、home-mixer側スイッチが有効化された形。履歴はTWEETとVIDEO_CAROUSEL_MODULEのみ対象で広告/おすすめユーザーモジュールは除外、重複排除・新しい順・10分の有効期限(HISTORY_MAX_AGE_MS)。(2)grox: スクリーンショットv2(ヘッドレスブラウザでx.com撮影)を完全削除(tweet_render_for_grox.py take_screenshot_v2 と _IMAGES_LOADED、hydrate_screenshotのv2引数も削除)、代わりに combined_view を新設(config.py:116 enable_combined_view 既定False、enable_screenshot_v2を置換)。全画像を高さ揃えで横連結(image.py:152-164 side_by_side)し600pxタイル化、画像5枚以上(_COMBINED_VIEW_MIN_IMAGES)・動画0・全メディアが画像・合成後アスペクト比3以内(_COMBINED_VIEW_MAX_ASPECT)のときのみ生成。5枚で合計3以内は1枚平均アスペクト0.6以下が必要＝実質『横長の1枚絵を縦に5分割した投稿』専用のゲート(1:1×5は5:1で超過、9:16×5は約2.8:1で通過)。スクリーンショット経路と異なり is_high_fav(いいね64)と not post.ancestors のゲートが無く、低エンゲージ投稿も対象。LMへは『ユーザーが1枚の絵を複数画像に分割していることがある』の説明文付きでscreenshotより前に添付(core/lm/post.py:139-144)。多数メディア安全性フロー(4枚ずつ分割)では先頭チャンクのみに添付し2件目以降はNone(task_safety_ptos_many_media.py:101-111)＝チャンク境界をまたぐ分割画像の死角を埋める狙い。(3)副作用: _sort_in_display_order(media_loader.py:235-249)が外部StratoMediaEntitiesのmediaId順に post.media を破壊的に並べ替え、合成に至らない場合も順序だけ変わる。メディアハイドレーションは task_media 共通段でPTOS系・mm_emb埋め込み系・返信スパム系の全フローが共有するため波及範囲は広い(要確認: StratoMediaEntitiesは本リポジトリ外)"
     }
   ]
 }
