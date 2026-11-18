@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "a284320b66a9dce35e6f5d6b052ee308eeb12326",
-  "last_analyzed_at": "2026-11-17",
+  "last_analyzed_sha": "9081b332f25634db1c3249ebd3d56fba332fd2e6",
+  "last_analyzed_at": "2026-11-18",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -364,6 +364,13 @@
       "to_sha": "a284320b66a9dce35e6f5d6b052ee308eeb12326",
       "report": "reports/2026-11-17.md",
       "headline": "大型アップデート(68ファイル): 掛け算型バリューモデル(skip回避率×エンゲージ合計×滞在倍率)をhome-mixer/vm-ranker/page_rlの3経路に実装(既定OFF)、DPPに意味ID L1同一カテゴリペナルティ+SID照会サービス新設(既定OFF)、広告量のユーザー状態別間引き新設(既定OFF)、広告のみタイムライン追加(ID許可リスト)、Grokフレームの×が実効化(即時ON)、多画像安全性審査をいいね256以上orアダルト既判定に限定(即時ON)、retrieval長滞在ラベルからクリックのみを除外(一部構成ON)、VMRankerSendDppHistoryがtrue→falseに差し戻し、投稿→ユーザー方向のRetrieveTopKUsers RPC新設、CREADデコードにpower/scale凹変換追加"
+    },
+    {
+      "date": "2026-11-18",
+      "from_sha": "a284320b66a9dce35e6f5d6b052ee308eeb12326",
+      "to_sha": "9081b332f25634db1c3249ebd3d56fba332fd2e6",
+      "report": "reports/2026-11-18.md",
+      "headline": "本番既定値の変更1件(56ファイル): 「リンクをコピー」共有の重みが0.0→20.0(いいねの40倍・最上位クラス、全ユーザー即時影響)。加えてフォロー外/内それぞれでエンゲージ項と滞在時間項を別倍率に分離する機構(既定OFF)、広告間引きにページスコア品質ティア(低/中/高)追加(既定OFF)、DPP履歴にリクエスト種別付与、teacherモデル予測の蒸留用キャッシュ新設(既定OFF)、自動制裁にテストアカウント除外ポリシー、没入滞在/動画続き見/プロフィール閲覧秒数の連続値ヘッド3種を追加"
     }
   ]
 }
