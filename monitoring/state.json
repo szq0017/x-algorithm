@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "b55151777cd8901111c7b5985a724f671f05d2c4",
-  "last_analyzed_at": "2026-11-19",
+  "last_analyzed_sha": "269340ce2eb8ca785bafa4f2c17a2e8b752bccd3",
+  "last_analyzed_at": "2026-11-21",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -378,6 +378,13 @@
       "to_sha": "b55151777cd8901111c7b5985a724f671f05d2c4",
       "report": "reports/2026-11-19.md",
       "headline": "ミュートキーワードがメンション/リプライ通知に適用開始(フラグなし即時適用、写真タグ付けは対象外・単語単位一致); エンゲージメント誘導ラベル(PROMOTES_REPLIES/SHARES/CLICKS)でヘッド単位無効化を新設(既定OFF); 自動制裁のフォロワー絶対上限を制裁種別ごとに引き上げ可能化(最大10億・二重確認付き); teacher score記録が既定ON・サンプリング廃止(21ヘッド); 長期著者プロフィール(長時間滞在ベース)の学習配管を新設(既定OFF); 編集済み投稿の誤非表示修正"
+    },
+    {
+      "date": "2026-11-21",
+      "from_sha": "b55151777cd8901111c7b5985a724f671f05d2c4",
+      "to_sha": "269340ce2eb8ca785bafa4f2c17a2e8b752bccd3",
+      "report": "reports/2026-11-21.md",
+      "headline": "エンゲージメント誘導ラベル(PROMOTES_REPLIES/SHARES/CLICKS)の無効化がランカー側のスコア計算まで実装完了=該当ヘッドをNoneにして寄与を完全ゼロ化(既定OFF、昨日の要確認に回答); フォロー中TLの広告挿入最低会話数を5→2に引き下げ(既定値の実変更、For Youは据え置き); 人気動画インデックス新設(48h・再生1万・いいね100、NSFW除外)＋動画カルーセル専用MoE取得経路(既定OFF); Under the Hoodトレースがユーザー設定トグルに昇格(既定OFF); 凍結にCSE最上位クラス(5)新設＋同時実行時の強い凍結優先の順序制御(最大5秒待機)、投稿単位の投稿者凍結に恒久/ポリシー指定追加; 教師モデル蒸留(リンク開封・広告クリック・動画品質視聴)とover-arch(4096x2)構成を追加; 広告の価値予測をアプリ内イベント5種に拡張(8時間窓・0.10ドル以上); Page-RLでVQVを乗算のtime係数へ移動(配信側Rust価値モデルとは式が不一致=要確認)"
     }
   ]
 }
