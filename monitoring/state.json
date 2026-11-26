@@ -3,8 +3,8 @@
   "upstream": "xai-org/x-algorithm",
   "automation_branch": "monitoring",
   "watched_branch": "main",
-  "last_analyzed_sha": "269340ce2eb8ca785bafa4f2c17a2e8b752bccd3",
-  "last_analyzed_at": "2026-11-21",
+  "last_analyzed_sha": "52d45989090e63992ba04e4f6cfccd73bf8cc05c",
+  "last_analyzed_at": "2026-11-26",
   "baseline_report": "reports/2026-07-20-baseline.md",
   "note": "last_analyzed_sha is the commit the most recent report was generated against. The monitoring Routine compares origin/<watched_branch> against this value and, on change, produces a new report then advances this SHA.",
   "history": [
@@ -385,6 +385,13 @@
       "to_sha": "269340ce2eb8ca785bafa4f2c17a2e8b752bccd3",
       "report": "reports/2026-11-21.md",
       "headline": "エンゲージメント誘導ラベル(PROMOTES_REPLIES/SHARES/CLICKS)の無効化がランカー側のスコア計算まで実装完了=該当ヘッドをNoneにして寄与を完全ゼロ化(既定OFF、昨日の要確認に回答); フォロー中TLの広告挿入最低会話数を5→2に引き下げ(既定値の実変更、For Youは据え置き); 人気動画インデックス新設(48h・再生1万・いいね100、NSFW除外)＋動画カルーセル専用MoE取得経路(既定OFF); Under the Hoodトレースがユーザー設定トグルに昇格(既定OFF); 凍結にCSE最上位クラス(5)新設＋同時実行時の強い凍結優先の順序制御(最大5秒待機)、投稿単位の投稿者凍結に恒久/ポリシー指定追加; 教師モデル蒸留(リンク開封・広告クリック・動画品質視聴)とover-arch(4096x2)構成を追加; 広告の価値予測をアプリ内イベント5種に拡張(8時間窓・0.10ドル以上); Page-RLでVQVを乗算のtime係数へ移動(配信側Rust価値モデルとは式が不一致=要確認)"
+    },
+    {
+      "date": "2026-11-26",
+      "from_sha": "269340ce2eb8ca785bafa4f2c17a2e8b752bccd3",
+      "to_sha": "52d45989090e63992ba04e4f6cfccd73bf8cc05c",
+      "report": "reports/2026-11-26.md",
+      "headline": "フラグなし即時2件(75ファイル、+12433/-256): (1)自動制裁に「招待された返信」免除を新設=親投稿の本文中にタイプされた@メンションに返信者が含まれれば、投稿単位の自動処置をスキップ(返信時の自動プレフィックスは不算入、親投稿の読み取り失敗/3秒タイムアウト時もスキップ=フェイルオープン、フォロワー数上限が優先、ユーザー単位処置は対象外); (2)grox live-cluster代表投稿のenforce対象からSpamPromotesClicks/SpamPromotesRepliesを除外(Sharesは対象のまま)=誘導系は制裁からランキング減点へ移行。既定OFF: ユーザー単位の行動バイアス除去xai-user-debias新設(6行動+滞在、clip_logit=1.0でオッズ約2.7倍以内)、動画完走ヘッドIsVideoCompleted(閾値p=0.35+1.05/(1+(d/50)^2)、短尺はループ必須・長尺は約35%、重み0)、通知カウント6種の履歴特徴量化、人気動画ソースの配信実装(カルーセル専用・本線には出ない)、ブラックフライデーGrokbotフレーム(slot3・×不可・置換型)。即時の小変更: Under the Hoodトレースを可視リクエスト限定に(+ユーザー上限機構は既定OFF)、is_reply_width判定の修正(幅広モデルでエンゲージ数が正しく入る)。インフラ: チェックポイント配信制御(follow/hold/canary/rolling、約7000行)、滞在時間のEGMN損失、教師キャッシュTTL 50分→3時間"
     }
   ]
 }
